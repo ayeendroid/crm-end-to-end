@@ -1,358 +1,84 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  DollarSign,
   Calendar,
   User,
   Phone,
-  Mail,
-  MoreVertical,
-  Plus,
-  Filter,
+  MapPin,
   Search,
-  TrendingUp,
   Target,
-  Clock,
-  CheckCircle2,
+  Wifi,
+  Activity,
+  TrendingUp,
 } from "lucide-react";
-
-interface Deal {
-  id: string;
-  title: string;
-  company: string;
-  value: number;
-  probability: number;
-  contact: string;
-  email: string;
-  phone: string;
-  closeDate: string;
-  tags: string[];
-  aiScore: number;
-  activities: number;
-}
+import { connectionLeads, type ConnectionLead } from "../services/dataService";
 
 interface Stage {
   id: string;
   name: string;
   color: string;
-  deals: Deal[];
-  totalValue: number;
-  winRate: number;
+  leads: ConnectionLead[];
+  count: number;
+  avgProbability: number;
 }
 
 const PipelineView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [draggedDeal, setDraggedDeal] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<string>("All");
 
-  // Mock data - in production, this would come from API
-  const [stages, setStages] = useState<Stage[]>([
-    {
-      id: "prospecting",
-      name: "Prospecting",
-      color: "blue",
-      winRate: 10,
-      totalValue: 450000,
-      deals: [
-        {
-          id: "1",
-          title: "Enterprise Plan - Q1",
-          company: "TechCorp India",
-          value: 150000,
-          probability: 15,
-          contact: "Rajesh Kumar",
-          email: "rajesh@techcorp.in",
-          phone: "+91 98765 43210",
-          closeDate: "2024-06-30",
-          tags: ["Enterprise", "Hot Lead"],
-          aiScore: 72,
-          activities: 5,
-        },
-        {
-          id: "2",
-          title: "Premium Package",
-          company: "StartupX",
-          value: 85000,
-          probability: 12,
-          contact: "Priya Sharma",
-          email: "priya@startupx.com",
-          phone: "+91 98123 45678",
-          closeDate: "2024-07-15",
-          tags: ["Startup", "Follow-up"],
-          aiScore: 68,
-          activities: 3,
-        },
-        {
-          id: "3",
-          title: "Standard Plan",
-          company: "Local Business Co",
-          value: 45000,
-          probability: 10,
-          contact: "Amit Patel",
-          email: "amit@localbiz.com",
-          phone: "+91 97654 32109",
-          closeDate: "2024-08-01",
-          tags: ["SMB"],
-          aiScore: 58,
-          activities: 2,
-        },
-      ],
-    },
-    {
-      id: "qualification",
-      name: "Qualification",
-      color: "purple",
-      winRate: 30,
-      totalValue: 620000,
-      deals: [
-        {
-          id: "4",
-          title: "Enterprise Solution",
-          company: "MegaCorp Ltd",
-          value: 320000,
-          probability: 35,
-          contact: "Sneha Reddy",
-          email: "sneha@megacorp.in",
-          phone: "+91 99876 54321",
-          closeDate: "2024-06-15",
-          tags: ["Enterprise", "Decision Maker"],
-          aiScore: 85,
-          activities: 12,
-        },
-        {
-          id: "5",
-          title: "Growth Package",
-          company: "ScaleUp Inc",
-          value: 180000,
-          probability: 28,
-          contact: "Vikram Singh",
-          email: "vikram@scaleup.com",
-          phone: "+91 98765 11111",
-          closeDate: "2024-07-01",
-          tags: ["Growth", "Budget Approved"],
-          aiScore: 78,
-          activities: 8,
-        },
-        {
-          id: "6",
-          title: "Professional Plan",
-          company: "Agency Works",
-          value: 120000,
-          probability: 25,
-          contact: "Neha Gupta",
-          email: "neha@agencyworks.in",
-          phone: "+91 97777 88888",
-          closeDate: "2024-07-20",
-          tags: ["Agency"],
-          aiScore: 71,
-          activities: 6,
-        },
-      ],
-    },
-    {
-      id: "proposal",
-      name: "Proposal",
-      color: "pink",
-      winRate: 50,
-      totalValue: 890000,
-      deals: [
-        {
-          id: "7",
-          title: "Custom Enterprise Deal",
-          company: "Global Tech Solutions",
-          value: 550000,
-          probability: 55,
-          contact: "Arjun Mehta",
-          email: "arjun@globaltech.com",
-          phone: "+91 99999 00000",
-          closeDate: "2024-06-10",
-          tags: ["Enterprise", "Proposal Sent", "High Value"],
-          aiScore: 92,
-          activities: 18,
-        },
-        {
-          id: "8",
-          title: "Premium Bundle",
-          company: "Innovate Labs",
-          value: 220000,
-          probability: 48,
-          contact: "Kavya Iyer",
-          email: "kavya@innovatelabs.in",
-          phone: "+91 98888 77777",
-          closeDate: "2024-06-25",
-          tags: ["Premium", "Demo Done"],
-          aiScore: 81,
-          activities: 10,
-        },
-        {
-          id: "9",
-          title: "Standard Plus",
-          company: "CloudFirst Co",
-          value: 120000,
-          probability: 45,
-          contact: "Rohit Verma",
-          email: "rohit@cloudfirst.com",
-          phone: "+91 97777 66666",
-          closeDate: "2024-07-05",
-          tags: ["Standard"],
-          aiScore: 74,
-          activities: 7,
-        },
-      ],
-    },
-    {
-      id: "negotiation",
-      name: "Negotiation",
-      color: "orange",
-      winRate: 70,
-      totalValue: 1250000,
-      deals: [
-        {
-          id: "10",
-          title: "Multi-Year Contract",
-          company: "Enterprise Networks",
-          value: 850000,
-          probability: 75,
-          contact: "Deepak Joshi",
-          email: "deepak@entnetworks.in",
-          phone: "+91 99000 11111",
-          closeDate: "2024-05-30",
-          tags: ["Enterprise", "Multi-Year", "Legal Review"],
-          aiScore: 95,
-          activities: 25,
-        },
-        {
-          id: "11",
-          title: "Premium Annual",
-          company: "Tech Innovators",
-          value: 280000,
-          probability: 68,
-          contact: "Ananya Das",
-          email: "ananya@techinnovators.com",
-          phone: "+91 98111 22222",
-          closeDate: "2024-06-05",
-          tags: ["Premium", "Price Discussion"],
-          aiScore: 88,
-          activities: 15,
-        },
-        {
-          id: "12",
-          title: "Growth Plan",
-          company: "Future Systems",
-          value: 120000,
-          probability: 65,
-          contact: "Sanjay Rao",
-          email: "sanjay@futuresys.in",
-          phone: "+91 97222 33333",
-          closeDate: "2024-06-12",
-          tags: ["Growth"],
-          aiScore: 82,
-          activities: 11,
-        },
-      ],
-    },
-    {
-      id: "closed-won",
-      name: "Closed Won",
-      color: "green",
-      winRate: 100,
-      totalValue: 980000,
-      deals: [
-        {
-          id: "13",
-          title: "Enterprise Package",
-          company: "Acme Corporation",
-          value: 450000,
-          probability: 100,
-          contact: "Meera Shah",
-          email: "meera@acme.com",
-          phone: "+91 99333 44444",
-          closeDate: "2024-05-15",
-          tags: ["Enterprise", "Closed", "Onboarding"],
-          aiScore: 98,
-          activities: 30,
-        },
-        {
-          id: "14",
-          title: "Premium Suite",
-          company: "Digital Masters",
-          value: 320000,
-          probability: 100,
-          contact: "Karthik Reddy",
-          email: "karthik@digitalmasters.in",
-          phone: "+91 98444 55555",
-          closeDate: "2024-05-20",
-          tags: ["Premium", "Closed"],
-          aiScore: 96,
-          activities: 22,
-        },
-        {
-          id: "15",
-          title: "Standard Annual",
-          company: "QuickStart Ltd",
-          value: 210000,
-          probability: 100,
-          contact: "Pooja Nair",
-          email: "pooja@quickstart.com",
-          phone: "+91 97555 66666",
-          closeDate: "2024-05-22",
-          tags: ["Standard", "Closed"],
-          aiScore: 94,
-          activities: 16,
-        },
-      ],
-    },
-  ]);
+  // Group leads by status
+  const stages: Stage[] = useMemo(() => {
+    const statusOrder = [
+      "New",
+      "Contacted",
+      "Site Survey Scheduled",
+      "Feasibility Check",
+      "Quotation Sent",
+      "Converted",
+      "Lost",
+    ];
 
-  const handleDragStart = (dealId: string) => {
-    setDraggedDeal(dealId);
-  };
+    const colorMap: Record<string, string> = {
+      New: "blue",
+      Contacted: "purple",
+      "Site Survey Scheduled": "yellow",
+      "Feasibility Check": "orange",
+      "Quotation Sent": "indigo",
+      Converted: "green",
+      Lost: "red",
+    };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+    return statusOrder.map((status) => {
+      const stageLeads = connectionLeads.filter((lead) => {
+        const matchesStatus = lead.status === status;
+        const matchesSearch =
+          searchQuery === "" ||
+          lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          lead.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          lead.location.state.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesPriority =
+          priorityFilter === "All" || lead.priority === priorityFilter;
 
-  const handleDrop = (targetStageId: string) => {
-    if (!draggedDeal) return;
+        return matchesStatus && matchesSearch && matchesPriority;
+      });
 
-    setStages((prevStages) => {
-      const newStages = [...prevStages];
-      let draggedDealObj: Deal | null = null;
+      const avgProbability =
+        stageLeads.length > 0
+          ? stageLeads.reduce(
+              (sum, lead) => sum + lead.conversionProbability,
+              0
+            ) / stageLeads.length
+          : 0;
 
-      // Find and remove the deal from source stage
-      for (let i = 0; i < newStages.length; i++) {
-        const dealIndex = newStages[i].deals.findIndex(
-          (d) => d.id === draggedDeal
-        );
-        if (dealIndex !== -1) {
-          draggedDealObj = newStages[i].deals[dealIndex];
-          newStages[i].deals.splice(dealIndex, 1);
-          break;
-        }
-      }
-
-      // Add to target stage
-      if (draggedDealObj) {
-        const targetStageIndex = newStages.findIndex(
-          (s) => s.id === targetStageId
-        );
-        if (targetStageIndex !== -1) {
-          newStages[targetStageIndex].deals.push(draggedDealObj);
-        }
-      }
-
-      return newStages;
+      return {
+        id: status.toLowerCase().replace(/\s+/g, "-"),
+        name: status,
+        color: colorMap[status] || "gray",
+        leads: stageLeads,
+        count: stageLeads.length,
+        avgProbability: Math.round(avgProbability),
+      };
     });
-
-    setDraggedDeal(null);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  }, [searchQuery, priorityFilter]);
 
   const getColorClasses = (color: string) => {
     const colors: Record<string, { bg: string; border: string; text: string }> =
@@ -367,37 +93,52 @@ const PipelineView: React.FC = () => {
           border: "border-purple-500",
           text: "text-purple-700",
         },
-        pink: {
-          bg: "bg-pink-100",
-          border: "border-pink-500",
-          text: "text-pink-700",
+        yellow: {
+          bg: "bg-yellow-100",
+          border: "border-yellow-500",
+          text: "text-yellow-700",
         },
         orange: {
           bg: "bg-orange-100",
           border: "border-orange-500",
           text: "text-orange-700",
         },
+        indigo: {
+          bg: "bg-indigo-100",
+          border: "border-indigo-500",
+          text: "text-indigo-700",
+        },
         green: {
           bg: "bg-green-100",
           border: "border-green-500",
           text: "text-green-700",
         },
+        red: {
+          bg: "bg-red-100",
+          border: "border-red-500",
+          text: "text-red-700",
+        },
       };
     return colors[color] || colors.blue;
   };
 
-  const getAIScoreColor = (score: number) => {
-    if (score >= 90) return "text-green-600 bg-green-50";
-    if (score >= 75) return "text-blue-600 bg-blue-50";
-    if (score >= 60) return "text-yellow-600 bg-yellow-50";
-    return "text-gray-600 bg-gray-50";
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-100 text-red-800";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "Low":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
   };
 
-  const totalPipelineValue = stages.reduce(
-    (sum, stage) => sum + stage.totalValue,
-    0
-  );
-  const totalDeals = stages.reduce((sum, stage) => sum + stage.deals.length, 0);
+  const totalLeads = stages.reduce((sum, stage) => sum + stage.count, 0);
+  const activeLeads = stages
+    .filter((s) => s.name !== "Converted" && s.name !== "Lost")
+    .reduce((sum, stage) => sum + stage.count, 0);
 
   return (
     <div className="space-y-6">
@@ -406,10 +147,10 @@ const PipelineView: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Target className="h-8 w-8 text-purple-600" />
-            Sales Pipeline
+            Connection Pipeline
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Drag and drop deals to move them through stages
+            Track new connection requests from inquiry to installation
           </p>
         </div>
 
@@ -418,223 +159,179 @@ const PipelineView: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search deals..."
+              placeholder="Search inquiries..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="h-4 w-4" />
-            <span className="text-sm font-medium">Filter</span>
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">New Deal</span>
-          </button>
+
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+          >
+            <option value="All">All Priorities</option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
         </div>
       </div>
 
-      {/* Pipeline Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Pipeline</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(totalPipelineValue)}
-              </p>
+              <p className="text-sm text-gray-600">Total Inquiries</p>
+              <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-blue-600" />
-            </div>
+            <TrendingUp className="h-8 w-8 text-blue-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Deals</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {totalDeals}
-              </p>
+              <p className="text-sm text-gray-600">Active Pipeline</p>
+              <p className="text-2xl font-bold text-gray-900">{activeLeads}</p>
             </div>
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Target className="h-6 w-6 text-purple-600" />
-            </div>
+            <Activity className="h-8 w-8 text-purple-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Expected Close</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">₹1.8L</p>
+              <p className="text-sm text-gray-600">Converted</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stages.find((s) => s.name === "Converted")?.count || 0}
+              </p>
             </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
+            <Wifi className="h-8 w-8 text-green-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg Deal Size</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(totalPipelineValue / totalDeals)}
+              <p className="text-sm text-gray-600">Conversion Rate</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {((stages.find((s) => s.name === "Converted")?.count || 0) /
+                  totalLeads *
+                  100).toFixed(1)}
+                %
               </p>
             </div>
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <CheckCircle2 className="h-6 w-6 text-orange-600" />
-            </div>
+            <Target className="h-8 w-8 text-indigo-600" />
           </div>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="overflow-x-auto pb-4">
-        <div className="inline-flex gap-4 min-w-full">
-          {stages.map((stage) => {
-            const colors = getColorClasses(stage.color);
-            return (
+      {/* Pipeline Stages */}
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {stages.map((stage) => {
+          const colors = getColorClasses(stage.color);
+          return (
+            <div
+              key={stage.id}
+              className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4"
+            >
+              {/* Stage Header */}
               <div
-                key={stage.id}
-                className="flex-shrink-0 w-80"
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(stage.id)}
+                className={`${colors.bg} ${colors.border} border-l-4 rounded-lg p-3 mb-4`}
               >
-                {/* Stage Header */}
-                <div
-                  className={`${colors.bg} rounded-t-lg p-4 border-t-4 ${colors.border}`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className={`font-semibold ${colors.text}`}>
-                      {stage.name}
-                    </h3>
-                    <span className="text-sm font-medium text-gray-600">
-                      {stage.deals.length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">
-                      {formatCurrency(stage.totalValue)}
-                    </span>
-                    <span className="text-gray-600">
-                      {stage.winRate}% win rate
-                    </span>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h3 className={`font-semibold ${colors.text}`}>
+                    {stage.name}
+                  </h3>
+                  <span
+                    className={`${colors.bg} ${colors.text} px-2 py-1 rounded-full text-sm font-bold`}
+                  >
+                    {stage.count}
+                  </span>
                 </div>
+                {stage.avgProbability > 0 && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Avg probability: {stage.avgProbability}%
+                  </p>
+                )}
+              </div>
 
-                {/* Deals */}
-                <div className="bg-gray-50 rounded-b-lg p-3 min-h-[600px] space-y-3">
-                  {stage.deals.map((deal) => (
+              {/* Lead Cards */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {stage.leads.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p className="text-sm">No inquiries</p>
+                  </div>
+                ) : (
+                  stage.leads.map((lead) => (
                     <div
-                      key={deal.id}
-                      draggable
-                      onDragStart={() => handleDragStart(deal.id)}
-                      className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-move"
+                      key={lead.id}
+                      className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
                     >
-                      {/* Deal Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 text-sm mb-1">
-                            {deal.title}
-                          </h4>
-                          <p className="text-xs text-gray-600">
-                            {deal.company}
-                          </p>
-                        </div>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <MoreVertical className="h-4 w-4 text-gray-400" />
-                        </button>
-                      </div>
-
-                      {/* Deal Value */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-lg font-bold text-gray-900">
-                            {formatCurrency(deal.value)}
-                          </span>
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded ${getAIScoreColor(
-                              deal.aiScore
-                            )}`}
-                          >
-                            AI: {deal.aiScore}
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full ${colors.bg.replace(
-                              "100",
-                              "500"
-                            )}`}
-                            style={{ width: `${deal.probability}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs text-gray-500 mt-1">
-                          {deal.probability}% probability
+                      {/* Lead Name & Priority */}
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900 text-sm">
+                          {lead.name}
+                        </h4>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(
+                            lead.priority
+                          )}`}
+                        >
+                          {lead.priority}
                         </span>
                       </div>
 
-                      {/* Contact Info */}
-                      <div className="space-y-2 mb-3 text-xs">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <User className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">{deal.contact}</span>
+                      {/* Location & Phone */}
+                      <div className="space-y-1 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <MapPin className="h-3 w-3" />
+                          <span>{lead.location.city}, {lead.location.state}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Calendar className="h-3 w-3 flex-shrink-0" />
-                          <span>
-                            Close:{" "}
-                            {new Date(deal.closeDate).toLocaleDateString(
-                              "en-IN"
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Clock className="h-3 w-3 flex-shrink-0" />
-                          <span>{deal.activities} activities</span>
-                        </div>
-                      </div>
-
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1">
-                        {deal.tags.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
-                        <button className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded transition-colors">
-                          <Mail className="h-3 w-3" />
-                          Email
-                        </button>
-                        <button className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium text-green-600 hover:bg-green-50 rounded transition-colors">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
                           <Phone className="h-3 w-3" />
-                          Call
-                        </button>
+                          <span>{lead.phone}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
 
-                  {/* Add Deal Button */}
-                  <button className="w-full p-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    Add Deal
-                  </button>
-                </div>
+                      {/* Plan & Probability */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span className="text-xs text-gray-600 font-medium">
+                          {lead.requestedPlan.speed} • ₹
+                          {lead.requestedPlan.price}
+                        </span>
+                        <span className="text-xs font-bold text-purple-600">
+                          {lead.conversionProbability}% chance
+                        </span>
+                      </div>
+
+                      {/* Assigned To */}
+                      {lead.assignedTo && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
+                          <User className="h-3 w-3" />
+                          <span>{lead.assignedTo}</span>
+                        </div>
+                      )}
+
+                      {/* Survey Date if applicable */}
+                      {lead.siteSurveyDate && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            Survey: {new Date(lead.siteSurveyDate).toLocaleDateString("en-IN")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
