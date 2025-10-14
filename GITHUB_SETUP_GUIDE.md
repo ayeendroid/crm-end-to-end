@@ -3,14 +3,16 @@
 ## Step 1: Create New GitHub Repository
 
 ### Option A: Using GitHub Website (Recommended)
+
 1. Go to https://github.com/new
 2. Fill in repository details:
+
    - **Repository name**: `BharatNet-CRM` or `modern-crm`
    - **Description**: "Modern Customer Relationship Management system with React, Node.js, MongoDB, and TypeScript. Features: Dashboard with gradients, Command Palette (⌘K), Activity Timeline, and professional UI."
-   - **Visibility**: 
+   - **Visibility**:
      - ✅ Public (if you want to showcase)
      - ⚪ Private (if confidential)
-   - **Initialize**: 
+   - **Initialize**:
      - ❌ DO NOT add README (we already have one)
      - ❌ DO NOT add .gitignore (we already have one)
      - ❌ DO NOT add license (add later if needed)
@@ -23,6 +25,7 @@
    ```
 
 ### Option B: Using GitHub CLI (If installed)
+
 ```bash
 gh repo create BharatNet-CRM --public --source=. --remote=origin --push
 ```
@@ -107,6 +110,7 @@ git push -u origin main
 ## Troubleshooting
 
 ### Error: "remote origin already exists"
+
 ```powershell
 # Remove existing remote
 git remote remove origin
@@ -116,12 +120,14 @@ git remote add origin https://github.com/YOUR-USERNAME/BharatNet-CRM.git
 ```
 
 ### Error: "failed to push some refs"
+
 ```powershell
 # Force push (first time only)
 git push -u origin main --force
 ```
 
 ### Error: "Author identity unknown"
+
 ```powershell
 # Set Git config
 git config --global user.name "Your Name"
@@ -132,6 +138,7 @@ git commit -m "Initial commit: BharatNet CRM v1.0"
 ```
 
 ### Error: "Authentication failed"
+
 - Use **Personal Access Token** instead of password
 - Generate token: https://github.com/settings/tokens
 - Use token as password when prompted
@@ -141,6 +148,7 @@ git commit -m "Initial commit: BharatNet CRM v1.0"
 ## What Gets Uploaded?
 
 ### ✅ Files Uploaded (Clean Code)
+
 ```
 BharatNet-CRM/
 ├── .github/
@@ -162,6 +170,7 @@ BharatNet-CRM/
 ```
 
 ### ❌ Files NOT Uploaded (Gitignored)
+
 - node_modules/
 - .env files
 - dist/ build folders
@@ -174,12 +183,16 @@ BharatNet-CRM/
 ## Repository Best Practices
 
 ### 1. Add Topics/Tags
+
 On GitHub repository page:
+
 - Click ⚙️ Settings or "Add topics"
 - Add: `crm`, `react`, `nodejs`, `mongodb`, `typescript`, `dashboard`, `modern-ui`
 
 ### 2. Write Good README
+
 Our README.md already includes:
+
 - ✅ Project description
 - ✅ Features list
 - ✅ Tech stack
@@ -187,12 +200,14 @@ Our README.md already includes:
 - ✅ Screenshots/demo
 
 ### 3. Add License (Optional)
+
 ```powershell
 # Create MIT License
 echo "MIT License" > LICENSE
 ```
 
 ### 4. Enable GitHub Pages (Optional)
+
 - Settings → Pages
 - Deploy from main branch
 - Access at: `https://YOUR-USERNAME.github.io/BharatNet-CRM`
@@ -202,6 +217,7 @@ echo "MIT License" > LICENSE
 ## Future Git Workflow
 
 ### Daily Development
+
 ```powershell
 # Check status
 git status
@@ -217,6 +233,7 @@ git push
 ```
 
 ### Create Feature Branch
+
 ```powershell
 # Create and switch to new branch
 git checkout -b feature/sales-pipeline
@@ -232,6 +249,7 @@ git push -u origin feature/sales-pipeline
 ```
 
 ### Sync with Remote
+
 ```powershell
 # Pull latest changes
 git pull origin main
@@ -246,6 +264,7 @@ git merge origin/main
 ## Security Checklist
 
 Before pushing:
+
 - ✅ .env files are gitignored
 - ✅ No passwords in code
 - ✅ No API keys committed
@@ -257,6 +276,7 @@ Before pushing:
 ## Repository URL Examples
 
 After creation, your repo will be at:
+
 - **HTTPS**: `https://github.com/YOUR-USERNAME/BharatNet-CRM`
 - **SSH**: `git@github.com:YOUR-USERNAME/BharatNet-CRM.git`
 - **GitHub Pages**: `https://YOUR-USERNAME.github.io/BharatNet-CRM` (if enabled)
@@ -277,6 +297,7 @@ After creation, your repo will be at:
 ## Repository Badges (Optional)
 
 Add to README.md:
+
 ```markdown
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)

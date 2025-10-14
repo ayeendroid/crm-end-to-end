@@ -11,6 +11,7 @@ This guide helps you access the BharatNet CRM from your phone, tablet, or other 
 ### Step 1: Get Your Computer's IP Address
 
 **Windows PowerShell:**
+
 ```powershell
 ipconfig | findstr IPv4
 ```
@@ -18,6 +19,7 @@ ipconfig | findstr IPv4
 Look for something like: `192.168.1.100` or `192.168.0.50`
 
 **Alternative Method:**
+
 ```powershell
 # Full details
 ipconfig
@@ -35,6 +37,7 @@ ipconfig
 Windows Firewall needs to allow incoming connections on ports 3000 and 5173.
 
 **Option A: PowerShell (Run as Administrator)**
+
 ```powershell
 # Allow Node.js through firewall
 New-NetFirewallRule -DisplayName "Node.js Server (Port 3000)" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow
@@ -45,6 +48,7 @@ Write-Host "✅ Firewall rules added successfully!" -ForegroundColor Green
 ```
 
 **Option B: Windows Firewall GUI**
+
 1. Open **Windows Defender Firewall**
 2. Click **"Advanced settings"**
 3. Click **"Inbound Rules"** → **"New Rule"**
@@ -70,6 +74,7 @@ npm run dev
 ```
 
 You should see:
+
 ```
 ➜  Local:   http://localhost:5173/
 ➜  Network: http://192.168.1.100:5173/  ← Use this URL!
@@ -82,11 +87,13 @@ You should see:
 On any device connected to the **same WiFi network**:
 
 **Frontend (React App):**
+
 ```
 http://192.168.1.100:5173
 ```
 
 **Backend API:**
+
 ```
 http://192.168.1.100:3000
 ```
@@ -98,18 +105,21 @@ http://192.168.1.100:3000
 ## Testing from Different Devices
 
 ### On Your Phone (Same WiFi)
+
 1. Connect phone to same WiFi as computer
 2. Open browser (Chrome/Safari)
 3. Type: `http://192.168.1.100:5173`
 4. CRM should load!
 
 ### On Another Computer
+
 1. Ensure it's on same network
 2. Open browser
 3. Type: `http://192.168.1.100:5173`
 4. Full CRM access!
 
 ### On Tablet (iPad/Android)
+
 1. Same WiFi connection
 2. Browser: `http://192.168.1.100:5173`
 3. Touch-optimized UI works great!
@@ -121,6 +131,7 @@ http://192.168.1.100:3000
 ### Issue 1: "Can't reach this page" / "Connection refused"
 
 **Fix: Check Firewall**
+
 ```powershell
 # Test if port is listening
 netstat -an | findstr ":5173"
@@ -132,6 +143,7 @@ TCP    0.0.0.0:3000    0.0.0.0:0    LISTENING
 ```
 
 If not showing:
+
 - Restart servers: `npm run dev`
 - Check firewall rules are added
 - Try disabling firewall temporarily (testing only!)
@@ -153,6 +165,7 @@ ipconfig /all
 Your IP might change after router restart.
 
 **Solution: Set Static IP**
+
 1. Open **Settings** → **Network & Internet**
 2. Click your connection (WiFi/Ethernet)
 3. Edit **IP settings** → Manual
@@ -164,6 +177,7 @@ Your IP might change after router restart.
 ### Issue 4: Slow Connection
 
 **Optimize for mobile:**
+
 ```powershell
 # Update package.json script
 # Already configured for optimal performance
@@ -186,17 +200,19 @@ npm run dev
 If you want to access from anywhere:
 
 1. **ngrok** (Easiest)
+
    ```bash
    # Install ngrok
    choco install ngrok
-   
+
    # Create tunnel
    ngrok http 5173
-   
+
    # Get public URL: https://abc123.ngrok.io
    ```
 
 2. **Port Forwarding** (Router)
+
    - Access router admin (usually `192.168.1.1`)
    - Forward ports 3000, 5173 to your PC IP
    - Access via your public IP
@@ -262,6 +278,7 @@ Write-Host "💡 Tip: Bookmark these URLs on your mobile devices!" -ForegroundCo
 ```
 
 Run it:
+
 ```powershell
 .\network-access.ps1
 ```
@@ -273,6 +290,7 @@ Run it:
 ### 1. Add to Home Screen (PWA)
 
 **iOS (iPhone/iPad):**
+
 1. Open `http://192.168.1.100:5173` in Safari
 2. Tap Share button
 3. "Add to Home Screen"
@@ -280,6 +298,7 @@ Run it:
 5. App icon appears on home screen!
 
 **Android:**
+
 1. Open in Chrome
 2. Tap menu (⋮)
 3. "Add to Home Screen"
@@ -287,6 +306,7 @@ Run it:
 5. Launch like a native app!
 
 ### 2. Responsive Design Already Built-In
+
 - ✅ Touch-optimized buttons
 - ✅ Mobile-friendly layout
 - ✅ Swipe gestures work
@@ -341,6 +361,7 @@ http://100.64.0.1:5173
 ```
 
 Benefits:
+
 - ✅ Secure (encrypted)
 - ✅ Works anywhere (not just local network)
 - ✅ No port forwarding needed
