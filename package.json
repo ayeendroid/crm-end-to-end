@@ -1,0 +1,32 @@
+{
+  "name": "modern-crm",
+  "version": "1.0.0",
+  "description": "Modern CRM application with React frontend and Node.js backend",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "client:dev": "cd client && npm run dev",
+    "client:build": "cd client && npm run build",
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "start": "cd server && npm start"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "crm",
+    "customer-relationship-management",
+    "react",
+    "nodejs",
+    "typescript",
+    "mongodb"
+  ],
+  "author": "Anmol",
+  "license": "MIT"
+}
