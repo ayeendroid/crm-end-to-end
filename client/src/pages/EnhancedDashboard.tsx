@@ -1,18 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   TrendingUp,
   TrendingDown,
   Users,
   DollarSign,
   Target,
-  Activity,
   Zap,
   Brain,
   ArrowUpRight,
   Clock,
   CheckCircle,
   AlertCircle,
-  Calendar,
   Star,
   Sparkles,
 } from "lucide-react";
@@ -31,222 +29,299 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import {
+  mockBharatNetCustomers,
+  getCustomerAnalytics,
+} from "../data/mockBharatNetData";
+import {
+  connectionLeads,
+  planUpgrades,
+  supportTickets,
+} from "../services/dataService";
 
 const EnhancedDashboard: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("30days");
 
-  // AI Insights and Predictions
-  const aiInsights = [
-    {
-      id: 1,
-      type: "prediction",
-      icon: Brain,
-      color: "purple",
-      title: "Deal Prediction",
-      description: 'High probability to close "Acme Corp - Enterprise Plan"',
-      confidence: 92,
-      action: "Review Deal",
-      priority: "high",
-    },
-    {
-      id: 2,
-      type: "opportunity",
-      icon: Sparkles,
-      color: "blue",
-      title: "Upsell Opportunity",
-      description: "3 customers ready for premium upgrade",
-      confidence: 85,
-      action: "View Customers",
-      priority: "medium",
-    },
-    {
-      id: 3,
-      type: "alert",
-      icon: AlertCircle,
-      color: "orange",
-      title: "Churn Risk",
-      description: "2 accounts showing decreased engagement",
-      confidence: 78,
-      action: "Take Action",
-      priority: "high",
-    },
-    {
-      id: 4,
-      type: "recommendation",
-      icon: Zap,
-      color: "green",
-      title: "Best Time to Contact",
-      description: "Optimal engagement window: 10 AM - 12 PM today",
-      confidence: 88,
-      action: "Schedule Calls",
-      priority: "medium",
-    },
-  ];
+  // Get real analytics
+  const analytics = useMemo(
+    () => getCustomerAnalytics(mockBharatNetCustomers),
+    []
+  );
 
-  // Enhanced metrics with AI predictions
-  const metrics = [
-    {
-      name: "Revenue",
-      value: "₹2.4L",
-      change: "+15.3%",
-      trend: "up",
-      prediction: "₹2.8L next month",
-      icon: DollarSign,
-      color: "green",
-      chartData: [
-        { month: "Jan", value: 180000 },
-        { month: "Feb", value: 195000 },
-        { month: "Mar", value: 210000 },
-        { month: "Apr", value: 240000 },
-      ],
-    },
-    {
-      name: "Customers",
-      value: "1,247",
-      change: "+12%",
-      trend: "up",
-      prediction: "1,380 next month",
-      icon: Users,
-      color: "blue",
-      chartData: [
-        { month: "Jan", value: 1000 },
-        { month: "Feb", value: 1100 },
-        { month: "Mar", value: 1180 },
-        { month: "Apr", value: 1247 },
-      ],
-    },
-    {
-      name: "Active Deals",
-      value: "89",
-      change: "+8.2%",
-      trend: "up",
-      prediction: "95 next month",
-      icon: Target,
-      color: "purple",
-      chartData: [
-        { month: "Jan", value: 72 },
-        { month: "Feb", value: 78 },
-        { month: "Mar", value: 82 },
-        { month: "Apr", value: 89 },
-      ],
-    },
-    {
-      name: "Win Rate",
-      value: "68%",
-      change: "+5.1%",
-      trend: "up",
-      prediction: "72% next month",
-      icon: Activity,
-      color: "indigo",
-      chartData: [
-        { month: "Jan", value: 58 },
-        { month: "Feb", value: 62 },
-        { month: "Mar", value: 65 },
-        { month: "Apr", value: 68 },
-      ],
-    },
-  ];
+  // Real AI Insights from actual data
+  const aiInsights = useMemo(() => {
+    const highRiskCustomers = mockBharatNetCustomers.filter(
+      (c) => c.churnRisk === "High"
+    );
+    const upgradeOpportunities = planUpgrades.filter(
+      (u) => u.probability >= 70 && u.status !== "Rejected"
+    );
+    const openTickets = supportTickets.filter(
+      (t) => t.status === "Open" || t.status === "In Progress"
+    );
 
-  // Sales pipeline data
-  const pipelineData = [
-    { name: "Prospecting", value: 45, color: "#3b82f6" },
-    { name: "Qualification", value: 32, color: "#8b5cf6" },
-    { name: "Proposal", value: 28, color: "#ec4899" },
-    { name: "Negotiation", value: 15, color: "#f59e0b" },
-    { name: "Closed Won", value: 23, color: "#10b981" },
-  ];
+    return [
+      {
+        id: 1,
+        type: "prediction",
+        icon: Brain,
+        color: "purple",
+        title: "Plan Upgrade Prediction",
+        description:
+          upgradeOpportunities.length > 0
+            ? `${
+                upgradeOpportunities.length
+              } high-probability upgrades identified - ${
+                upgradeOpportunities[0]?.customerName || "Customer"
+              } ready for ${
+                upgradeOpportunities[0]?.proposedPlan.speed || "upgrade"
+              }`
+            : "No high-probability upgrades at this time",
+        confidence: 92,
+        action: "View Opportunities",
+        priority: "high" as const,
+      },
+      {
+        id: 2,
+        type: "opportunity",
+        icon: Sparkles,
+        color: "blue",
+        title: "Upsell Opportunity",
+        description: `${
+          upgradeOpportunities.filter((u) => u.upgradeType === "Speed Upgrade")
+            .length
+        } subscribers ready for speed upgrade`,
+        confidence: 85,
+        action: "View Subscribers",
+        priority: "medium" as const,
+      },
+      {
+        id: 3,
+        type: "alert",
+        icon: AlertCircle,
+        color: "orange",
+        title: "Churn Risk Alert",
+        description: `${highRiskCustomers.length} high-risk subscribers need immediate attention`,
+        confidence: 78,
+        action: "Take Action",
+        priority: "high" as const,
+      },
+      {
+        id: 4,
+        type: "recommendation",
+        icon: Zap,
+        color: "green",
+        title: "Support Performance",
+        description: `${
+          openTickets.length
+        } open tickets - avg response time ${Math.round(
+          supportTickets.reduce((sum, t) => sum + t.responseTime, 0) /
+            supportTickets.length
+        )}min`,
+        confidence: 88,
+        action: "View Tickets",
+        priority: "medium" as const,
+      },
+    ];
+  }, []);
 
-  // Revenue forecast
-  const forecastData = [
-    { month: "May", actual: 240000, forecast: 260000, target: 280000 },
-    { month: "Jun", actual: null, forecast: 275000, target: 300000 },
-    { month: "Jul", actual: null, forecast: 290000, target: 320000 },
-    { month: "Aug", actual: null, forecast: 310000, target: 350000 },
-  ];
+  // Enhanced metrics with real data
+  const metrics = useMemo(() => {
+    const revenue = analytics.totalRevenue;
+    const activeCount = analytics.active;
+    const upgradePotential = planUpgrades.filter(
+      (u) => u.status === "Approved" || u.status === "Implemented"
+    ).length;
 
-  // Top performers
-  const topPerformers = [
-    {
-      id: 1,
-      name: "Rahul Sharma",
-      deals: 23,
-      revenue: "₹5.2L",
-      avatar: "RS",
-      trend: "up",
-      score: 95,
-    },
-    {
-      id: 2,
-      name: "Priya Patel",
-      deals: 19,
-      revenue: "₹4.8L",
-      avatar: "PP",
-      trend: "up",
-      score: 92,
-    },
-    {
-      id: 3,
-      name: "Amit Kumar",
-      deals: 17,
-      revenue: "₹4.2L",
-      avatar: "AK",
-      trend: "up",
-      score: 88,
-    },
-    {
-      id: 4,
-      name: "Sneha Reddy",
-      deals: 15,
-      revenue: "₹3.9L",
-      avatar: "SR",
-      trend: "up",
-      score: 85,
-    },
-  ];
+    return [
+      {
+        name: "Revenue",
+        value: `₹${(revenue / 100000).toFixed(1)}L`,
+        change: "+15.3%",
+        trend: "up",
+        prediction: `₹${((revenue * 1.15) / 100000).toFixed(1)}L next month`,
+        icon: DollarSign,
+        color: "green",
+        chartData: [
+          { month: "Jan", value: revenue * 0.75 },
+          { month: "Feb", value: revenue * 0.85 },
+          { month: "Mar", value: revenue * 0.95 },
+          { month: "Apr", value: revenue },
+        ],
+      },
+      {
+        name: "Customers",
+        value: activeCount.toLocaleString("en-IN"),
+        change: "+12%",
+        trend: "up",
+        prediction: `${Math.round(activeCount * 1.1).toLocaleString(
+          "en-IN"
+        )} next month`,
+        icon: Users,
+        color: "blue",
+        chartData: [
+          { month: "Jan", value: Math.round(activeCount * 0.8) },
+          { month: "Feb", value: Math.round(activeCount * 0.88) },
+          { month: "Mar", value: Math.round(activeCount * 0.94) },
+          { month: "Apr", value: activeCount },
+        ],
+      },
+      {
+        name: "Active Deals",
+        value: upgradePotential.toString(),
+        change: "+8.2%",
+        trend: "up",
+        prediction: `${Math.round(upgradePotential * 1.2)} next month`,
+        icon: Target,
+        color: "purple",
+        chartData: [
+          { month: "Jan", value: Math.round(upgradePotential * 0.7) },
+          { month: "Feb", value: Math.round(upgradePotential * 0.8) },
+          { month: "Mar", value: Math.round(upgradePotential * 0.9) },
+          { month: "Apr", value: upgradePotential },
+        ],
+      },
+      {
+        name: "Win Rate",
+        value: `${((analytics.active / analytics.total) * 100).toFixed(0)}%`,
+        change: "+5.6%",
+        trend: "up",
+        prediction: "73% next month",
+        icon: TrendingUp,
+        color: "indigo",
+        chartData: [
+          { month: "Jan", value: 62 },
+          { month: "Feb", value: 65 },
+          { month: "Mar", value: 66 },
+          { month: "Apr", value: 68 },
+        ],
+      },
+    ];
+  }, [analytics]);
 
-  // Recent activities with AI context
-  const recentActivities = [
-    {
-      id: 1,
-      type: "deal",
-      title: "Deal won: Tech Solutions Ltd",
-      description: "Closed enterprise plan - ₹2.5L ARR",
-      time: "10 minutes ago",
-      icon: CheckCircle,
-      color: "green",
-      aiContext: "Predicted with 94% confidence",
-    },
-    {
-      id: 2,
-      type: "meeting",
-      title: "Upcoming: Demo with Acme Corp",
-      description: "Product demonstration scheduled",
-      time: "In 2 hours",
-      icon: Calendar,
-      color: "blue",
-      aiContext: "High engagement signals detected",
-    },
-    {
-      id: 3,
-      type: "lead",
-      title: "New qualified lead: StartupX",
-      description: "AI scored: 85/100 - High potential",
-      time: "1 hour ago",
-      icon: Star,
-      color: "yellow",
-      aiContext: "Matches ideal customer profile",
-    },
-    {
-      id: 4,
-      type: "alert",
-      title: "Follow-up reminder: 3 leads",
-      description: "Leads going cold without contact",
-      time: "2 hours ago",
-      icon: AlertCircle,
-      color: "orange",
-      aiContext: "Response urgency: High",
-    },
-  ];
+  // Real connection pipeline data
+  const pipelineData = useMemo(() => {
+    const stages = connectionLeads.reduce((acc, lead) => {
+      acc[lead.status] = (acc[lead.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const colors: Record<string, string> = {
+      New: "#3b82f6",
+      Contacted: "#8b5cf6",
+      "Site Survey Scheduled": "#ec4899",
+      "Feasibility Check": "#f59e0b",
+      "Quotation Sent": "#06b6d4",
+      Converted: "#10b981",
+      Lost: "#ef4444",
+    };
+
+    return Object.entries(stages).map(([name, value]) => ({
+      name,
+      value,
+      color: colors[name] || "#6b7280",
+    }));
+  }, []);
+
+  // Revenue forecast based on real upgrades
+  const forecastData = useMemo(() => {
+    const currentRevenue = analytics.totalRevenue;
+    const potentialMRR = planUpgrades
+      .filter((u) => u.status === "Approved" || u.status === "Pending Approval")
+      .reduce((sum, u) => sum + u.mrrImpact, 0);
+
+    return [
+      {
+        month: "May",
+        actual: currentRevenue,
+        forecast: currentRevenue + potentialMRR * 0.3,
+        target: currentRevenue * 1.15,
+      },
+      {
+        month: "Jun",
+        actual: null as number | null,
+        forecast: currentRevenue + potentialMRR * 0.6,
+        target: currentRevenue * 1.25,
+      },
+      {
+        month: "Jul",
+        actual: null as number | null,
+        forecast: currentRevenue + potentialMRR,
+        target: currentRevenue * 1.35,
+      },
+      {
+        month: "Aug",
+        actual: null as number | null,
+        forecast: currentRevenue + potentialMRR * 1.2,
+        target: currentRevenue * 1.45,
+      },
+    ];
+  }, [analytics]);
+
+  // Top performing plans based on real data
+  const topPerformers = useMemo(() => {
+    const planPerformance = mockBharatNetCustomers.reduce((acc, customer) => {
+      const planKey = `${customer.plan.type} ${customer.plan.speed}`;
+      if (!acc[planKey]) {
+        acc[planKey] = {
+          name: planKey,
+          subscribers: 0,
+          revenue: 0,
+          avgUptime: 0,
+          churnCount: 0,
+        };
+      }
+      acc[planKey].subscribers += 1;
+      acc[planKey].revenue += customer.plan.price;
+      acc[planKey].avgUptime += 99; // Default uptime
+      if (customer.churnRisk === "High") acc[planKey].churnCount += 1;
+      return acc;
+    }, {} as Record<string, { name: string; subscribers: number; revenue: number; avgUptime: number; churnCount: number }>);
+
+    return Object.values(planPerformance)
+      .map((plan) => ({
+        id: plan.name,
+        name: plan.name,
+        deals: plan.subscribers,
+        revenue: `₹${(plan.revenue / 100000).toFixed(1)}L`,
+        avatar: plan.name.substring(0, 2).toUpperCase(),
+        trend: plan.churnCount < plan.subscribers * 0.05 ? "up" : "down",
+        score: Math.round((plan.avgUptime / plan.subscribers) * 0.95),
+      }))
+      .sort((a, b) => b.deals - a.deals)
+      .slice(0, 3);
+  }, []);
+
+  // Recent activities from support tickets
+  const recentActivities = useMemo(() => {
+    return supportTickets
+      .filter((t) => t.status === "Resolved" || t.status === "In Progress")
+      .sort(
+        (a, b) =>
+          new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+      )
+      .slice(0, 5)
+      .map((ticket) => ({
+        id: ticket.id,
+        type: ticket.status === "Resolved" ? "deal" : "meeting",
+        title: `${ticket.category}: ${ticket.customerName}`,
+        description: ticket.description,
+        time: new Date(ticket.createdDate).toLocaleString("en-IN", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        icon: ticket.status === "Resolved" ? CheckCircle : Clock,
+        color:
+          ticket.priority === "High"
+            ? "red"
+            : ticket.priority === "Medium"
+            ? "orange"
+            : "green",
+        aiContext: `${ticket.priority} priority - ${ticket.status}`,
+      }));
+  }, []);
 
   const getColorClasses = (color: string) => {
     const colors: Record<
@@ -300,10 +375,11 @@ const EnhancedDashboard: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Brain className="h-8 w-8 text-purple-600" />
-            AI-Powered Dashboard
+            🤖 AI-Powered ISP Dashboard
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Real-time insights and predictions for your business
+            Real-time network insights, subscriber analytics, and churn
+            predictions
           </p>
         </div>
         <div className="flex gap-2">
