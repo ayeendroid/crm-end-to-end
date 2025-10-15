@@ -1,18 +1,16 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { useQuery } from "react-query";
 import {
   TrendingUp,
   DollarSign,
   Users,
-  Wifi,
+  Target,
   AlertTriangle,
   Download,
   BarChart3,
-  PieChart,
-  LineChart,
+  Loader2,
 } from "lucide-react";
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   PieChart as RePieChart,
@@ -22,218 +20,159 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  mockBharatNetCustomers,
-  getCustomerAnalytics,
-} from "../__mocks__/mockBharatNetData";
-import {
-  connectionLeads,
-  planUpgrades,
-  supportTickets,
-} from "../__mocks__/mockDataService";
+import reportService from "../services/reportService";
 
 const Reports: React.FC = () => {
   const [dateRange, setDateRange] = useState("6months");
 
-  const analytics = useMemo(
-    () => getCustomerAnalytics(mockBharatNetCustomers),
-    []
+  // Fetch reports data
+  const { data: salesData, isLoading: salesLoading } = useQuery(
+    ["sales-performance", dateRange],
+    () => reportService.getSalesPerformance(dateRange)
   );
 
-  // Revenue Trend Data (Last 6 months)
-  const revenueData = useMemo(() => {
-    const months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
-    const baseRevenue = analytics.totalRevenue;
+  const { data: leadsData, isLoading: leadsLoading } = useQuery(
+    ["lead-analytics", dateRange],
+    () => reportService.getLeadAnalytics(dateRange)
+  );
 
-    return months.map((month, index) => {
-      const growthFactor = 0.85 + index * 0.025; // 15% growth over 6 months
-      const revenue = Math.round(baseRevenue * growthFactor);
-      const mrr = revenue;
-      const arr = revenue * 12;
+  const { data: customersData, isLoading: customersLoading } = useQuery(
+    ["customer-metrics", dateRange],
+    () => reportService.getCustomerMetrics(dateRange)
+  );
 
-      return {
-        month,
-        revenue: revenue / 100000, // Convert to lakhs
-        mrr: mrr / 100000,
-        arr: arr / 1000000, // Convert to millions
-        newCustomers: 20 + index * 5,
-        churnedCustomers: 5 + Math.floor(Math.random() * 3),
-      };
-    });
-  }, [analytics]);
+  const isLoading = salesLoading || leadsLoading || customersLoading;
 
-  // Subscriber Growth Data
-  const subscriberGrowthData = useMemo(() => {
-    const total = analytics.total;
-    return [
-      {
-        month: "May",
-        active: Math.round(total * 0.88),
-        suspended: Math.round(total * 0.08),
-        cancelled: Math.round(total * 0.04),
-      },
-      {
-        month: "Jun",
-        active: Math.round(total * 0.9),
-        suspended: Math.round(total * 0.07),
-        cancelled: Math.round(total * 0.03),
-      },
-      {
-        month: "Jul",
-        active: Math.round(total * 0.92),
-        suspended: Math.round(total * 0.06),
-        cancelled: Math.round(total * 0.02),
-      },
-      {
-        month: "Aug",
-        active: Math.round(total * 0.94),
-        suspended: Math.round(total * 0.05),
-        cancelled: Math.round(total * 0.01),
-      },
-      {
-        month: "Sep",
-        active: Math.round(total * 0.96),
-        suspended: Math.round(total * 0.03),
-        cancelled: Math.round(total * 0.01),
-      },
-      {
-        month: "Oct",
-        active: analytics.active,
-        suspended: analytics.suspended,
-        cancelled: analytics.cancelled,
-      },
-    ];
-  }, [analytics]);
+  // Calculate metrics
+  const winRate = salesData
+    ? salesData.totalDeals > 0
+      ? ((salesData.wonDeals / salesData.totalDeals) * 100).toFixed(1)
+      : "0"
+    : "0";
 
-  // Plan Distribution Data
-  const planDistributionData = useMemo(() => {
-    return Object.entries(analytics.planDistribution).map(([plan, count]) => ({
-      name: plan,
-      value: count,
-      percentage: ((count / analytics.total) * 100).toFixed(1),
-    }));
-  }, [analytics]);
+  const leadConversionRate = leadsData
+    ? leadsData.totalLeads > 0
+      ? ((leadsData.qualifiedLeads / leadsData.totalLeads) * 100).toFixed(1)
+      : "0"
+    : "0";
 
-  // Churn Risk Analysis
-  const churnRiskData = useMemo(() => {
-    return [
-      { name: "Low Risk", value: analytics.churnRisk.low, color: "#10b981" },
-      {
-        name: "Medium Risk",
-        value: analytics.churnRisk.medium,
-        color: "#f59e0b",
-      },
-      { name: "High Risk", value: analytics.churnRisk.high, color: "#ef4444" },
-    ];
-  }, [analytics]);
+  const customerActiveRate = customersData
+    ? customersData.totalCustomers > 0
+      ? ((customersData.activeCustomers / customersData.totalCustomers) * 100).toFixed(1)
+      : "0"
+    : "0";
 
-  // Support Ticket Trends
-  const supportTrendData = useMemo(() => {
-    const categories = [
-      "Slow Internet",
-      "No Connectivity",
-      "OTT Issues",
-      "Billing",
-      "Router Issues",
-      "Installation",
-    ];
-
-    return categories.map((category) => ({
-      category: category.replace(" Issues", "").replace(" Query", ""),
-      count: supportTickets.filter(
-        (t) => t.category === category || t.category === category + " Query"
-      ).length,
-      resolved: supportTickets.filter(
-        (t) =>
-          (t.category === category || t.category === category + " Query") &&
-          t.status === "Resolved"
-      ).length,
-    }));
-  }, []);
-
-  // Conversion Funnel Data
-  const conversionFunnelData = useMemo(() => {
-    const stages = [
-      {
-        stage: "New Inquiries",
-        count: connectionLeads.filter((l) => l.status === "New").length,
-        percentage: 100,
-      },
-      {
-        stage: "Contacted",
-        count: connectionLeads.filter((l) => l.status === "Contacted").length,
-        percentage: 75,
-      },
-      {
-        stage: "Site Survey",
-        count: connectionLeads.filter(
-          (l) => l.status === "Site Survey Scheduled"
-        ).length,
-        percentage: 55,
-      },
-      {
-        stage: "Feasibility",
-        count: connectionLeads.filter((l) => l.status === "Feasibility Check")
-          .length,
-        percentage: 40,
-      },
-      {
-        stage: "Quotation",
-        count: connectionLeads.filter((l) => l.status === "Quotation Sent")
-          .length,
-        percentage: 30,
-      },
-      {
-        stage: "Converted",
-        count: connectionLeads.filter((l) => l.status === "Converted").length,
-        percentage: 20,
-      },
-    ];
-
-    return stages;
-  }, []);
-
-  // Upgrade Revenue Impact
-  const upgradeRevenueData = useMemo(() => {
-    const types = ["Speed Upgrade", "Plan Change", "OTT Add-on", "Downgrade"];
-
-    return types.map((type) => {
-      const typeUpgrades = planUpgrades.filter((u) => u.upgradeType === type);
-      const totalImpact = typeUpgrades.reduce((sum, u) => sum + u.mrrImpact, 0);
-      const count = typeUpgrades.length;
-
-      return {
-        type: type.replace(" Upgrade", "").replace(" Add-on", ""),
-        count,
-        impact: totalImpact,
-        avgImpact: count > 0 ? Math.round(totalImpact / count) : 0,
-      };
-    });
-  }, []);
-
-  const COLORS = [
-    "#3b82f6",
-    "#8b5cf6",
-    "#ec4899",
-    "#f59e0b",
-    "#10b981",
-    "#06b6d4",
+  // Chart data
+  const dealStageData = [
+    { name: "Total Deals", value: salesData?.totalDeals || 0, color: "#3b82f6" },
+    { name: "Won Deals", value: salesData?.wonDeals || 0, color: "#10b981" },
+    {
+      name: "Lost/Open",
+      value: (salesData?.totalDeals || 0) - (salesData?.wonDeals || 0),
+      color: "#ef4444",
+    },
   ];
+
+  const leadStatusData = [
+    { name: "Total Leads", value: leadsData?.totalLeads || 0, color: "#8b5cf6" },
+    { name: "Qualified", value: leadsData?.qualifiedLeads || 0, color: "#10b981" },
+    {
+      name: "Other",
+      value: (leadsData?.totalLeads || 0) - (leadsData?.qualifiedLeads || 0),
+      color: "#f59e0b",
+    },
+  ];
+
+  const customerStatusData = [
+    {
+      name: "Active",
+      value: customersData?.activeCustomers || 0,
+      color: "#10b981",
+    },
+    {
+      name: "Inactive",
+      value:
+        (customersData?.totalCustomers || 0) -
+        (customersData?.activeCustomers || 0),
+      color: "#ef4444",
+    },
+  ];
+
+  // Export handlers
+  const handleExportSales = () => {
+    if (!salesData) return;
+    const data = [
+      {
+        metric: "Total Deals",
+        value: salesData.totalDeals,
+      },
+      {
+        metric: "Won Deals",
+        value: salesData.wonDeals,
+      },
+      {
+        metric: "Total Revenue",
+        value: salesData.totalRevenue,
+      },
+      {
+        metric: "Win Rate",
+        value: `${winRate}%`,
+      },
+    ];
+    reportService.exportToCSV(data, `sales-report-${dateRange}`);
+  };
+
+  const handleExportLeads = () => {
+    if (!leadsData) return;
+    const data = [
+      {
+        metric: "Total Leads",
+        value: leadsData.totalLeads,
+      },
+      {
+        metric: "Qualified Leads",
+        value: leadsData.qualifiedLeads,
+      },
+      {
+        metric: "Conversion Rate",
+        value: `${leadConversionRate}%`,
+      },
+    ];
+    reportService.exportToCSV(data, `leads-report-${dateRange}`);
+  };
+
+  const handleExportCustomers = () => {
+    if (!customersData) return;
+    const data = [
+      {
+        metric: "Total Customers",
+        value: customersData.totalCustomers,
+      },
+      {
+        metric: "Active Customers",
+        value: customersData.activeCustomers,
+      },
+      {
+        metric: "Active Rate",
+        value: `${customerActiveRate}%`,
+      },
+    ];
+    reportService.exportToCSV(data, `customers-report-${dateRange}`);
+  };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate flex items-center gap-2">
             <BarChart3 className="h-8 w-8 text-blue-600" />
-            Analytics & Reports
+            Reports & Analytics
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Generate detailed reports on subscribers, revenue, network
-            performance, and churn
+            Real-time data and insights from your CRM database
           </p>
         </div>
         <div className="mt-4 flex gap-3 md:mt-0 md:ml-4">
@@ -242,366 +181,359 @@ const Reports: React.FC = () => {
             onChange={(e) => setDateRange(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="1month">Last Month</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
             <option value="3months">Last 3 Months</option>
             <option value="6months">Last 6 Months</option>
-            <option value="1year">Last Year</option>
+            <option value="12months">Last 12 Months</option>
           </select>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Download className="h-4 w-4" />
-            Export PDF
-          </button>
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Total Revenue</p>
-              <p className="text-3xl font-bold mt-2">
-                ₹{(analytics.totalRevenue / 100000).toFixed(1)}L
-              </p>
-              <p className="text-blue-100 text-xs mt-1">Monthly Recurring</p>
-            </div>
-            <DollarSign className="h-12 w-12 text-blue-200" />
-          </div>
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-gray-600">Loading reports...</span>
         </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium">
-                Active Subscribers
-              </p>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.active.toLocaleString()}
-              </p>
-              <p className="text-green-100 text-xs mt-1">+12% vs last month</p>
-            </div>
-            <Users className="h-12 w-12 text-green-200" />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm font-medium">
-                Network Uptime
-              </p>
-              <p className="text-3xl font-bold mt-2">{analytics.avgUptime}</p>
-              <p className="text-purple-100 text-xs mt-1">Industry leading</p>
-            </div>
-            <Wifi className="h-12 w-12 text-purple-200" />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm font-medium">Churn Risk</p>
-              <p className="text-3xl font-bold mt-2">
-                {analytics.churnRisk.high}
-              </p>
-              <p className="text-orange-100 text-xs mt-1">
-                High risk customers
-              </p>
-            </div>
-            <AlertTriangle className="h-12 w-12 text-orange-200" />
-          </div>
-        </div>
-      </div>
-
-      {/* Revenue Trend Chart */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <LineChart className="h-5 w-5 text-blue-600" />
-              Revenue Trend Analysis
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Monthly recurring revenue over time
-            </p>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={revenueData}>
-            <defs>
-              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="month" stroke="#6b7280" />
-            <YAxis
-              stroke="#6b7280"
-              label={{
-                value: "Revenue (₹L)",
-                angle: -90,
-                position: "insideLeft",
-              }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-              formatter={(value: number) => [
-                `₹${value.toFixed(2)}L`,
-                "Revenue",
-              ]}
-            />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey="revenue"
-              stroke="#3b82f6"
-              fillOpacity={1}
-              fill="url(#colorRevenue)"
-              name="MRR"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Subscriber Growth Chart */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-              Subscriber Growth Trend
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Active, suspended, and cancelled subscribers
-            </p>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={subscriberGrowthData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="month" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-            />
-            <Legend />
-            <Bar dataKey="active" fill="#10b981" name="Active" />
-            <Bar dataKey="suspended" fill="#f59e0b" name="Suspended" />
-            <Bar dataKey="cancelled" fill="#ef4444" name="Cancelled" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Plan Distribution */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <PieChart className="h-5 w-5 text-purple-600" />
-                Plan Distribution
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Subscriber breakdown by plan type
-              </p>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <RePieChart>
-              <Pie
-                data={planDistributionData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percentage }) => `${name} (${percentage}%)`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {planDistributionData.map((_entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                }}
-              />
-            </RePieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Churn Risk Analysis */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-                Churn Risk Analysis
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Customer risk distribution
-              </p>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <RePieChart>
-              <Pie
-                data={churnRiskData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {churnRiskData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                }}
-              />
-            </RePieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Support Ticket Trends */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Support Ticket Analysis
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Ticket volume and resolution by category
-            </p>
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={supportTrendData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="category" stroke="#6b7280" />
-            <YAxis stroke="#6b7280" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-            />
-            <Legend />
-            <Bar dataKey="count" fill="#3b82f6" name="Total Tickets" />
-            <Bar dataKey="resolved" fill="#10b981" name="Resolved" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Conversion Funnel */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Connection Conversion Funnel
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Lead progression through sales stages
-            </p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {conversionFunnelData.map((stage, index) => (
-            <div key={stage.stage} className="relative">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">
-                  {stage.stage}
-                </span>
-                <span className="text-sm font-semibold text-gray-900">
-                  {stage.count} leads
-                </span>
+      ) : (
+        <>
+          {/* Key Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Revenue */}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">
+                    Total Revenue
+                  </p>
+                  <p className="text-3xl font-bold mt-2">
+                    {reportService.formatCurrency(salesData?.totalRevenue || 0)}
+                  </p>
+                  <p className="text-blue-100 text-xs mt-1">
+                    From {salesData?.wonDeals || 0} won deals
+                  </p>
+                </div>
+                <DollarSign className="h-12 w-12 text-blue-200" />
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden">
-                <div
-                  className="h-8 rounded-full flex items-center justify-center text-white text-sm font-medium transition-all"
-                  style={{
-                    width: `${stage.percentage}%`,
-                    backgroundColor: `hsl(${220 - index * 20}, 70%, ${
-                      50 + index * 5
-                    }%)`,
-                  }}
+            </div>
+
+            {/* Total Customers */}
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">
+                    Total Customers
+                  </p>
+                  <p className="text-3xl font-bold mt-2">
+                    {reportService.formatNumber(
+                      customersData?.totalCustomers || 0
+                    )}
+                  </p>
+                  <p className="text-green-100 text-xs mt-1">
+                    {customerActiveRate}% active rate
+                  </p>
+                </div>
+                <Users className="h-12 w-12 text-green-200" />
+              </div>
+            </div>
+
+            {/* Total Leads */}
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">
+                    Total Leads
+                  </p>
+                  <p className="text-3xl font-bold mt-2">
+                    {reportService.formatNumber(leadsData?.totalLeads || 0)}
+                  </p>
+                  <p className="text-purple-100 text-xs mt-1">
+                    {leadConversionRate}% qualified
+                  </p>
+                </div>
+                <Target className="h-12 w-12 text-purple-200" />
+              </div>
+            </div>
+
+            {/* Win Rate */}
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-medium">
+                    Deal Win Rate
+                  </p>
+                  <p className="text-3xl font-bold mt-2">{winRate}%</p>
+                  <p className="text-orange-100 text-xs mt-1">
+                    {salesData?.wonDeals || 0} of {salesData?.totalDeals || 0}{" "}
+                    deals
+                  </p>
+                </div>
+                <TrendingUp className="h-12 w-12 text-orange-200" />
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sales Performance Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Sales Performance
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Deal outcomes breakdown
+                  </p>
+                </div>
+                <button
+                  onClick={handleExportSales}
+                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
                 >
-                  {stage.percentage}%
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={dealStageData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" stroke="#6b7280" />
+                  <YAxis stroke="#6b7280" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                    {dealStageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {salesData?.totalDeals || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Total Deals</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {salesData?.wonDeals || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Won</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{winRate}%</p>
+                  <p className="text-xs text-gray-500">Win Rate</p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Upgrade Revenue Impact */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Plan Upgrade Revenue Impact
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              MRR impact by upgrade type
-            </p>
+            {/* Lead Analytics Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Lead Analytics
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Lead qualification status
+                  </p>
+                </div>
+                <button
+                  onClick={handleExportLeads}
+                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <RePieChart>
+                  <Pie
+                    data={leadStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {leadStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RePieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {leadsData?.totalLeads || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Total Leads</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {leadsData?.qualifiedLeads || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Qualified</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {leadConversionRate}%
+                  </p>
+                  <p className="text-xs text-gray-500">Qualification Rate</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Status Chart */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Customer Status
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Active vs inactive customers
+                  </p>
+                </div>
+                <button
+                  onClick={handleExportCustomers}
+                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <RePieChart>
+                  <Pie
+                    data={customerStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {customerStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RePieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {customersData?.totalCustomers || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Total</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {customersData?.activeCustomers || 0}
+                  </p>
+                  <p className="text-xs text-gray-500">Active</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {customerActiveRate}%
+                  </p>
+                  <p className="text-xs text-gray-500">Active Rate</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Table */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Report Summary
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm text-gray-600">Total Revenue</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {reportService.formatCurrency(salesData?.totalRevenue || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm text-gray-600">
+                    Average Deal Size
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {reportService.formatCurrency(
+                      salesData?.wonDeals
+                        ? salesData.totalRevenue / salesData.wonDeals
+                        : 0
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm text-gray-600">
+                    Total Customers
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {reportService.formatNumber(
+                      customersData?.totalCustomers || 0
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm text-gray-600">Total Leads</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {reportService.formatNumber(leadsData?.totalLeads || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                  <span className="text-sm text-gray-600">Win Rate</span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {winRate}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-sm text-gray-600">
+                    Lead Qualification Rate
+                  </span>
+                  <span className="text-sm font-semibold text-purple-600">
+                    {leadConversionRate}%
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={upgradeRevenueData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="type" stroke="#6b7280" />
-            <YAxis
-              stroke="#6b7280"
-              label={{
-                value: "MRR Impact (₹)",
-                angle: -90,
-                position: "insideLeft",
-              }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-              }}
-              formatter={(value: number) => [
-                `₹${value.toLocaleString()}`,
-                "Impact",
-              ]}
-            />
-            <Legend />
-            <Bar dataKey="impact" fill="#8b5cf6" name="Total MRR Impact" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+
+          {/* Info Banner */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">
+                  Real-Time Data
+                </h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  All reports are generated from live database data. Use the date
+                  range selector above to filter results. Export any report to CSV
+                  for further analysis.
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
