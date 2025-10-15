@@ -13,11 +13,49 @@ router.get(
     const limit = parseInt(req.query.limit as string) || 50;
     const skip = (page - 1) * limit;
 
-    const activities = await Activity.find()
+    // Build filter
+    const filter: any = {};
+
+    if (req.query.type) {
+      filter.type = req.query.type;
+    }
+
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    if (req.query.priority) {
+      filter.priority = req.query.priority;
+    }
+
+    if (req.query.assignedTo) {
+      filter.assignedTo = req.query.assignedTo;
+    }
+
+    if (req.query.relatedToType && req.query.relatedToId) {
+      filter["relatedTo.type"] = req.query.relatedToType;
+      filter["relatedTo.id"] = req.query.relatedToId;
+    }
+
+    if (req.query.startDate || req.query.endDate) {
+      filter.scheduledDate = {};
+      if (req.query.startDate) {
+        filter.scheduledDate.$gte = new Date(req.query.startDate as string);
+      }
+      if (req.query.endDate) {
+        filter.scheduledDate.$lte = new Date(req.query.endDate as string);
+      }
+    }
+
+    const activities = await Activity.find(filter)
+      .populate("assignedTo", "name email")
+      .populate("createdBy", "name email")
+      .populate("attendees", "name email")
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 });
-    const total = await Activity.countDocuments();
+      .sort({ scheduledDate: -1, createdAt: -1 });
+
+    const total = await Activity.countDocuments(filter);
 
     res.json({
       success: true,
@@ -51,12 +89,17 @@ router.get(
   "/:id",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const activity = await Activity.findById(req.params.id);
+    const activity = await Activity.findById(req.params.id)
+      .populate("assignedTo", "name email")
+      .populate("createdBy", "name email")
+      .populate("attendees", "name email");
+
     if (!activity)
       return res.status(404).json({
         success: false,
         error: { message: "Activity not found" },
       });
+
     res.json({
       success: true,
       data: activity,

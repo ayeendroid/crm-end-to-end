@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 // TypeScript interfaces for report data
 export interface SalesPerformance {
@@ -33,7 +33,7 @@ const reportService = {
   async getSalesPerformance(dateRange?: string): Promise<SalesPerformance> {
     const params = dateRange ? { dateRange } : {};
     const response = await api.get<ReportResponse<SalesPerformance>>(
-      '/reports/sales-performance',
+      "/reports/sales-performance",
       { params }
     );
     return response.data.data;
@@ -45,7 +45,7 @@ const reportService = {
   async getLeadAnalytics(dateRange?: string): Promise<LeadAnalytics> {
     const params = dateRange ? { dateRange } : {};
     const response = await api.get<ReportResponse<LeadAnalytics>>(
-      '/reports/lead-analytics',
+      "/reports/lead-analytics",
       { params }
     );
     return response.data.data;
@@ -57,7 +57,7 @@ const reportService = {
   async getCustomerMetrics(dateRange?: string): Promise<CustomerMetrics> {
     const params = dateRange ? { dateRange } : {};
     const response = await api.get<ReportResponse<CustomerMetrics>>(
-      '/reports/customer-metrics',
+      "/reports/customer-metrics",
       { params }
     );
     return response.data.data;
@@ -70,23 +70,21 @@ const reportService = {
     // Convert data to CSV format
     const headers = Object.keys(data[0] || {});
     const csvContent = [
-      headers.join(','),
-      ...data.map(row => 
-        headers.map(header => 
-          JSON.stringify(row[header] || '')
-        ).join(',')
-      )
-    ].join('\n');
+      headers.join(","),
+      ...data.map((row) =>
+        headers.map((header) => JSON.stringify(row[header] || "")).join(",")
+      ),
+    ].join("\n");
 
     // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    link.style.visibility = 'hidden';
-    
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${filename}.csv`);
+    link.style.visibility = "hidden";
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -96,10 +94,10 @@ const reportService = {
    * Format currency for display
    */
   formatCurrency(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
     }).format(value);
   },
 
@@ -107,8 +105,8 @@ const reportService = {
    * Format number with commas
    */
   formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-IN').format(value);
-  }
+    return new Intl.NumberFormat("en-IN").format(value);
+  },
 };
 
 export default reportService;
