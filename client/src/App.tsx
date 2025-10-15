@@ -35,6 +35,9 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
+      cacheTime: 10 * 60 * 1000, // Cache for 10 minutes
+      refetchOnMount: false, // Don't refetch on component mount if data exists
     },
   },
 });

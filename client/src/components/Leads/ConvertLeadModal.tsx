@@ -123,14 +123,18 @@ const ConvertLeadModal: React.FC<ConvertLeadModalProps> = ({
         phone: formData.phone,
         company: formData.company,
         status: formData.status,
+        assignedTo: lead.assignedTo, // Use the lead's assigned user
         address: formData.address,
-        plan: formData.plan,
-        usage: formData.usage,
-        tickets: formData.tickets,
-        nps_score: formData.nps_score,
-        churnRisk: formData.churnRisk,
-        customerSince: new Date().toISOString(),
-        lifetime_value: formData.plan.price * 12, // Estimate annual value
+        // Wrap ISP-specific data in ispData object
+        ispData: {
+          plan: formData.plan,
+          usage: formData.usage,
+          customerSince: new Date(),
+          lifetimeValue: formData.plan.price * 12, // Estimate annual value
+          churnRisk: formData.churnRisk,
+          npsScore: formData.nps_score,
+          tickets: formData.tickets,
+        },
       };
 
       await customerService.createCustomer(customerData);

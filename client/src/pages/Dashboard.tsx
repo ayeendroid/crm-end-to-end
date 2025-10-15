@@ -16,6 +16,10 @@ import {
   Download,
   Filter,
   BarChart3,
+  Settings,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,6 +37,9 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  FunnelChart,
+  Funnel,
+  LabelList,
 } from "recharts";
 import ActivityTimeline from "../components/ActivityTimeline/ActivityTimeline";
 import analyticsService from "../services/analyticsService";
@@ -42,6 +49,20 @@ const Dashboard: React.FC = () => {
     "30d"
   );
   const [showCharts, setShowCharts] = useState(true);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [visibleWidgets, setVisibleWidgets] = useState({
+    stats: true,
+    alerts: true,
+    revenueChart: true,
+    dealsChart: true,
+    pipelineChart: true,
+    leadSourceChart: true,
+    customerGrowthChart: true,
+    funnelChart: true,
+    timeline: true,
+    quickActions: true,
+    networkStatus: true,
+  });
 
   // Calculate date range
   const getDateRange = () => {
@@ -67,33 +88,74 @@ const Dashboard: React.FC = () => {
   const { start, end } = getDateRange();
 
   // Fetch overview metrics
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  const {
+    data: overview,
+    isLoading: overviewLoading,
+    refetch: refetchOverview,
+    error: overviewError,
+  } = useQuery({
     queryKey: ["analytics-overview", start, end],
     queryFn: () => analyticsService.getOverview(start, end),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Fetch trend data
-  const { data: trends, isLoading: trendsLoading } = useQuery({
+  const {
+    data: trends,
+    isLoading: trendsLoading,
+    refetch: refetchTrends,
+    error: trendsError,
+  } = useQuery({
     queryKey: ["analytics-trends"],
     queryFn: () => analyticsService.getTrends(6), // Last 6 months
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!overview, // Only fetch after overview loads
   });
 
   // Fetch deal pipeline
-  const { data: pipeline, isLoading: pipelineLoading } = useQuery({
+  const {
+    data: pipeline,
+    isLoading: pipelineLoading,
+    error: pipelineError,
+  } = useQuery({
     queryKey: ["analytics-pipeline"],
     queryFn: () => analyticsService.getDealPipeline(),
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!overview, // Only fetch after overview loads
   });
 
   // Fetch lead performance
-  const { data: leadPerf, isLoading: leadPerfLoading } = useQuery({
+  const {
+    data: leadPerf,
+    isLoading: leadPerfLoading,
+    error: leadPerfError,
+  } = useQuery({
     queryKey: ["analytics-lead-performance"],
     queryFn: () => analyticsService.getLeadPerformance(),
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!overview && !!trends, // Only fetch after overview and trends load
   });
 
   // Fetch customer insights
-  const { data: customerInsights, isLoading: insightsLoading } = useQuery({
+  const {
+    data: customerInsights,
+    isLoading: insightsLoading,
+    error: insightsError,
+  } = useQuery({
     queryKey: ["customer-insights"],
     queryFn: () => analyticsService.getCustomerInsights(),
+    staleTime: 2 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!overview && !!trends, // Only fetch after overview and trends load
   });
 
   const isLoading =
@@ -102,6 +164,20 @@ const Dashboard: React.FC = () => {
     trendsLoading ||
     pipelineLoading ||
     leadPerfLoading;
+
+  // Check for errors
+  const hasError =
+    overviewError ||
+    trendsError ||
+    pipelineError ||
+    leadPerfError ||
+    insightsError;
+  const isRateLimited =
+    (overviewError as any)?.response?.status === 429 ||
+    (trendsError as any)?.response?.status === 429 ||
+    (pipelineError as any)?.response?.status === 429 ||
+    (leadPerfError as any)?.response?.status === 429 ||
+    (insightsError as any)?.response?.status === 429;
 
   // Prepare chart data from trends
   const revenueChartData =
@@ -138,6 +214,51 @@ const Dashboard: React.FC = () => {
       value: source.count,
       qualified: source.qualified,
     })) || [];
+
+  // Prepare conversion funnel data
+  const funnelData = overview
+    ? [
+        {
+          name: "Total Leads",
+          stage: "Total Leads",
+          value: overview.leads.total,
+          fill: "#3B82F6",
+          percentage: 100,
+        },
+        {
+          name: "Qualified Leads",
+          stage: "Qualified Leads",
+          value: overview.leads.qualified,
+          fill: "#8B5CF6",
+          percentage:
+            overview.leads.total > 0
+              ? Math.round(
+                  (overview.leads.qualified / overview.leads.total) * 100
+                )
+              : 0,
+        },
+        {
+          name: "Active Deals",
+          stage: "Active Deals",
+          value: overview.deals.total,
+          fill: "#10B981",
+          percentage:
+            overview.leads.total > 0
+              ? Math.round((overview.deals.total / overview.leads.total) * 100)
+              : 0,
+        },
+        {
+          name: "Won Deals",
+          stage: "Won Deals",
+          value: overview.deals.won,
+          fill: "#F59E0B",
+          percentage:
+            overview.leads.total > 0
+              ? Math.round((overview.deals.won / overview.leads.total) * 100)
+              : 0,
+        },
+      ]
+    : [];
 
   // Colors for charts
   const COLORS = [
@@ -276,6 +397,27 @@ const Dashboard: React.FC = () => {
             {showCharts ? "Hide" : "Show"} Charts
           </button>
 
+          {/* Refresh Button */}
+          <button
+            onClick={() => {
+              refetchOverview();
+              refetchTrends();
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </button>
+
+          {/* Customize Widgets Button */}
+          <button
+            onClick={() => setShowCustomization(!showCustomization)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Customize
+          </button>
+
           {/* Export Button */}
           <button
             onClick={() => {
@@ -290,6 +432,65 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Customization Panel */}
+      {showCustomization && (
+        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Customize Dashboard Widgets
+            </h3>
+            <button
+              onClick={() => {
+                setVisibleWidgets({
+                  stats: true,
+                  alerts: true,
+                  revenueChart: true,
+                  dealsChart: true,
+                  pipelineChart: true,
+                  leadSourceChart: true,
+                  customerGrowthChart: true,
+                  funnelChart: true,
+                  timeline: true,
+                  quickActions: true,
+                  networkStatus: true,
+                });
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Reset to Default
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Object.entries(visibleWidgets).map(([key, value]) => (
+              <label
+                key={key}
+                className="flex items-center space-x-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={value}
+                  onChange={(e) =>
+                    setVisibleWidgets({
+                      ...visibleWidgets,
+                      [key]: e.target.checked,
+                    })
+                  }
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700 capitalize">
+                  {key.replace(/([A-Z])/g, " $1").trim()}
+                </span>
+                {value ? (
+                  <Eye className="h-4 w-4 text-green-500" />
+                ) : (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -298,8 +499,49 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Error State */}
+      {!isLoading && hasError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start">
+            <AlertTriangle className="h-6 w-6 text-red-600 mt-0.5" />
+            <div className="ml-3 flex-1">
+              <h3 className="text-lg font-medium text-red-800">
+                {isRateLimited
+                  ? "Too Many Requests"
+                  : "Error Loading Dashboard"}
+              </h3>
+              <p className="mt-2 text-sm text-red-700">
+                {isRateLimited
+                  ? "You have made too many requests. Please wait a moment before refreshing."
+                  : "There was an error loading the dashboard data. Please try again."}
+              </p>
+              <div className="mt-4 flex space-x-3">
+                <button
+                  onClick={() => {
+                    setTimeout(() => {
+                      refetchOverview();
+                      refetchTrends();
+                    }, 2000); // Wait 2 seconds before retry
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry in 2 seconds
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Reload Page
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Stats Grid */}
-      {!isLoading && stats.length > 0 && (
+      {!isLoading && !hasError && stats.length > 0 && visibleWidgets.stats && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -381,196 +623,376 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Alerts Section */}
-      {!isLoading && alerts.length > 0 && (
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              System Alerts
-            </h3>
-            <div className="space-y-3">
-              {alerts.map((alert, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-md"
-                >
-                  <div className="flex items-center">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
-                    <span className="text-sm text-yellow-800">
-                      {alert.message}
-                    </span>
+      {!isLoading &&
+        !hasError &&
+        alerts.length > 0 &&
+        visibleWidgets.alerts && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                System Alerts
+              </h3>
+              <div className="space-y-3">
+                {alerts.map((alert, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-md"
+                  >
+                    <div className="flex items-center">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
+                      <span className="text-sm text-yellow-800">
+                        {alert.message}
+                      </span>
+                    </div>
+                    <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
+                      {alert.action}
+                    </button>
                   </div>
-                  <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
-                    {alert.action}
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+          </div>
+        )}
+
+      {/* Conversion Funnel Chart */}
+      {!isLoading && !hasError && visibleWidgets.funnelChart && overview && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Conversion Funnel
+          </h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Track your lead-to-customer conversion journey
+          </p>
+          <ResponsiveContainer width="100%" height={400}>
+            <FunnelChart>
+              <Funnel dataKey="value" data={funnelData} isAnimationActive>
+                <LabelList
+                  position="right"
+                  fill="#000"
+                  stroke="none"
+                  dataKey="name"
+                  formatter={(value: string, entry: any) =>
+                    `${value}: ${entry.value} (${entry.percentage}%)`
+                  }
+                />
+                {funnelData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Funnel>
+            </FunnelChart>
+          </ResponsiveContainer>
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {funnelData.map((stage) => (
+              <div
+                key={stage.name}
+                className="text-center p-3 bg-gray-50 rounded-lg"
+              >
+                <div
+                  className="w-4 h-4 rounded-full mx-auto mb-2"
+                  style={{ backgroundColor: stage.fill }}
+                ></div>
+                <div className="text-xs font-medium text-gray-600">
+                  {stage.name}
+                </div>
+                <div className="text-lg font-bold text-gray-900">
+                  {stage.value}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {stage.percentage}% of total
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Charts Section */}
-      {!isLoading && showCharts && (
+      {!isLoading && !hasError && showCharts && (
         <>
           {/* Revenue & Deals Trend */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Trend Chart */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Revenue Trend (Last 6 Months)
-              </h3>
-              {revenueChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={revenueChartData}>
-                    <defs>
-                      <linearGradient
-                        id="colorRevenue"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#3B82F6"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#3B82F6"
-                          stopOpacity={0.1}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                      tickFormatter={(value) => `₹${value}K`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#FFF",
-                        border: "1px solid #E5E7EB",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value: any) => [
-                        `₹${value.toFixed(1)}K`,
-                        "Revenue",
-                      ]}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorRevenue)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
-                  <Filter className="h-12 w-12" />
-                  <span className="ml-2">No data available</span>
-                </div>
-              )}
-            </div>
+            {visibleWidgets.revenueChart && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Revenue Trend (Last 6 Months)
+                </h3>
+                {revenueChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={revenueChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorRevenue"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3B82F6"
+                            stopOpacity={0.8}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3B82F6"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                        tickFormatter={(value) => `₹${value}K`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#FFF",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: "8px",
+                        }}
+                        formatter={(value: any) => [
+                          `₹${value.toFixed(1)}K`,
+                          "Revenue",
+                        ]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#3B82F6"
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorRevenue)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-400">
+                    <Filter className="h-12 w-12" />
+                    <span className="ml-2">No data available</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Deals Trend Chart */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Deals Performance
-              </h3>
-              {dealsChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={dealsChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                      tickFormatter={(value) => `₹${value}K`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#FFF",
-                        border: "1px solid #E5E7EB",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="deals"
-                      stroke="#8B5CF6"
-                      strokeWidth={2}
-                      name="Deal Count"
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#10B981"
-                      strokeWidth={2}
-                      name="Revenue (₹K)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
-                  <Filter className="h-12 w-12" />
-                  <span className="ml-2">No data available</span>
-                </div>
-              )}
-            </div>
+            {visibleWidgets.dealsChart && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Deals Performance
+                </h3>
+                {dealsChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={dealsChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                        tickFormatter={(value) => `₹${value}K`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#FFF",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="deals"
+                        stroke="#8B5CF6"
+                        strokeWidth={2}
+                        name="Deal Count"
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#10B981"
+                        strokeWidth={2}
+                        name="Revenue (₹K)"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-400">
+                    <Filter className="h-12 w-12" />
+                    <span className="ml-2">No data available</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pipeline & Lead Sources */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Deal Pipeline Chart */}
+            {visibleWidgets.pipelineChart && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Deal Pipeline by Stage
+                </h3>
+                {pipelineChartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={pipelineChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="stage"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#6B7280"
+                        style={{ fontSize: 12 }}
+                        tickFormatter={(value) => `₹${value}K`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#FFF",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Legend />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="count"
+                        fill="#3B82F6"
+                        name="Deal Count"
+                        radius={[8, 8, 0, 0]}
+                      />
+                      <Bar
+                        yAxisId="right"
+                        dataKey="value"
+                        fill="#10B981"
+                        name="Value (₹K)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-400">
+                    <Filter className="h-12 w-12" />
+                    <span className="ml-2">No data available</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Lead Sources Pie Chart */}
+            {visibleWidgets.leadSourceChart && (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Lead Distribution by Source
+                </h3>
+                {leadSourceData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={leadSourceData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({
+                          cx,
+                          cy,
+                          midAngle,
+                          innerRadius,
+                          outerRadius,
+                          percent,
+                        }) => {
+                          const radius =
+                            innerRadius + (outerRadius - innerRadius) * 0.5;
+                          const x =
+                            cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                          const y =
+                            cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                          return (
+                            <text
+                              x={x}
+                              y={y}
+                              fill="white"
+                              textAnchor={x > cx ? "start" : "end"}
+                              dominantBaseline="central"
+                              style={{ fontSize: 12, fontWeight: "bold" }}
+                            >
+                              {`${(percent * 100).toFixed(0)}%`}
+                            </text>
+                          );
+                        }}
+                        outerRadius={100}
+                        dataKey="value"
+                      >
+                        {leadSourceData.map((_entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#FFF",
+                          border: "1px solid #E5E7EB",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-400">
+                    <Filter className="h-12 w-12" />
+                    <span className="ml-2">No data available</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Customer Growth Chart */}
+          {visibleWidgets.customerGrowthChart && (
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Deal Pipeline by Stage
+                Customer Growth Trend
               </h3>
-              {pipelineChartData.length > 0 ? (
+              {customerChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={pipelineChartData}>
+                  <BarChart data={customerChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis
-                      dataKey="stage"
+                      dataKey="month"
                       stroke="#6B7280"
                       style={{ fontSize: 12 }}
                     />
-                    <YAxis
-                      yAxisId="left"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#6B7280"
-                      style={{ fontSize: 12 }}
-                      tickFormatter={(value) => `₹${value}K`}
-                    />
+                    <YAxis stroke="#6B7280" style={{ fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "#FFF",
@@ -578,19 +1000,10 @@ const Dashboard: React.FC = () => {
                         borderRadius: "8px",
                       }}
                     />
-                    <Legend />
                     <Bar
-                      yAxisId="left"
-                      dataKey="count"
-                      fill="#3B82F6"
-                      name="Deal Count"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar
-                      yAxisId="right"
-                      dataKey="value"
-                      fill="#10B981"
-                      name="Value (₹K)"
+                      dataKey="customers"
+                      fill="#8B5CF6"
+                      name="New Customers"
                       radius={[8, 8, 0, 0]}
                     />
                   </BarChart>
@@ -602,143 +1015,41 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {/* Lead Sources Pie Chart */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Lead Distribution by Source
-              </h3>
-              {leadSourceData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={leadSourceData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        percent,
-                      }) => {
-                        const radius =
-                          innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x =
-                          cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                        const y =
-                          cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="white"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                            style={{ fontSize: 12, fontWeight: "bold" }}
-                          >
-                            {`${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
-                      outerRadius={100}
-                      dataKey="value"
-                    >
-                      {leadSourceData.map((_entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#FFF",
-                        border: "1px solid #E5E7EB",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400">
-                  <Filter className="h-12 w-12" />
-                  <span className="ml-2">No data available</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Customer Growth Chart */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Customer Growth Trend
-            </h3>
-            {customerChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={customerChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#6B7280"
-                    style={{ fontSize: 12 }}
-                  />
-                  <YAxis stroke="#6B7280" style={{ fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#FFF",
-                      border: "1px solid #E5E7EB",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar
-                    dataKey="customers"
-                    fill="#8B5CF6"
-                    name="New Customers"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-400">
-                <Filter className="h-12 w-12" />
-                <span className="ml-2">No data available</span>
-              </div>
-            )}
-          </div>
+          )}
         </>
       )}
 
       {/* Activity Timeline and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Activity Timeline */}
-        <ActivityTimeline maxVisible={5} showLoadMore={true} />
+        {visibleWidgets.timeline && (
+          <ActivityTimeline maxVisible={5} showLoadMore={true} />
+        )}
 
         {/* Quick Actions */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add New Subscriber
-              </button>
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Schedule Site Survey
-              </button>
-              <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <Calendar className="mr-2 h-4 w-4" />
-                Create Support Ticket
-              </button>
+        {visibleWidgets.quickActions && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Quick Actions
+              </h3>
+              <div className="space-y-3">
+                <button className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add New Subscriber
+                </button>
+                <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Schedule Site Survey
+                </button>
+                <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Create Support Ticket
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Network Status */}

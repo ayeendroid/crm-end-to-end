@@ -69,7 +69,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const customerData = {
       ...req.body,
-      assignedTo: (req as any).user.id, // From auth middleware
+      // Use provided assignedTo if present (for lead conversion), otherwise use current user
+      assignedTo: req.body.assignedTo || (req as any).user.id,
     };
 
     const customer = new Customer(customerData);

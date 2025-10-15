@@ -4,6 +4,7 @@ import requireAuth from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
 import {
   validateLead,
+  validateLeadUpdate,
   validateObjectId,
   validatePagination,
 } from "../middleware/validators";
@@ -77,7 +78,7 @@ router.put(
   "/:id",
   requireAuth,
   validateObjectId,
-  validateLead,
+  validateLeadUpdate,
   checkValidationResult,
   asyncHandler(async (req, res) => {
     const lead = await Lead.findByIdAndUpdate(req.params.id, req.body, {

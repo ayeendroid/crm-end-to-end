@@ -43,6 +43,11 @@ export const validateCustomer = [
     .optional({ checkFalsy: true })
     .isIn(["website", "referral", "social", "email", "phone", "event", "other"])
     .withMessage("Invalid source value"),
+
+  body("assignedTo")
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage("Invalid user ID"),
 ];
 
 // Customer Update Validation (all fields optional)
@@ -142,6 +147,77 @@ export const validateLead = [
   body("assignedTo")
     .notEmpty()
     .withMessage("Assigned user is required")
+    .isMongoId()
+    .withMessage("Invalid user ID"),
+
+  body("estimatedValue")
+    .optional({ checkFalsy: true })
+    .isFloat({ min: 0 })
+    .withMessage("Estimated value must be a positive number"),
+
+  body("notes").optional({ checkFalsy: true }).trim().isLength({ max: 2000 }),
+];
+
+// Lead Update Validation (all fields optional)
+export const validateLeadUpdate = [
+  body("firstName")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage("First name must be between 2 and 100 characters"),
+
+  body("lastName")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Last name must be between 2 and 100 characters"),
+
+  body("email")
+    .optional({ checkFalsy: true })
+    .trim()
+    .isEmail()
+    .withMessage("Please provide a valid email")
+    .normalizeEmail(),
+
+  body("phone")
+    .optional({ checkFalsy: true })
+    .trim()
+    .matches(
+      /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/
+    )
+    .withMessage("Please provide a valid phone number"),
+
+  body("company").optional({ checkFalsy: true }).trim().isLength({ max: 100 }),
+
+  body("status")
+    .optional({ checkFalsy: true })
+    .isIn([
+      "new",
+      "contacted",
+      "qualified",
+      "proposal",
+      "negotiation",
+      "closed-won",
+      "closed-lost",
+    ])
+    .withMessage("Invalid status value"),
+
+  body("source")
+    .optional({ checkFalsy: true })
+    .isIn([
+      "website",
+      "referral",
+      "social",
+      "email",
+      "phone",
+      "event",
+      "advertisement",
+      "other",
+    ])
+    .withMessage("Invalid source value"),
+
+  body("assignedTo")
+    .optional({ checkFalsy: true })
     .isMongoId()
     .withMessage("Invalid user ID"),
 
