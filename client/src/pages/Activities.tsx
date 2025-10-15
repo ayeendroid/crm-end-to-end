@@ -13,7 +13,7 @@ import {
   Wrench,
   HelpCircle,
 } from "lucide-react";
-import { supportTickets } from "../services/dataService";
+import { supportTickets } from "../__mocks__/mockDataService";
 
 const Activities: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");

@@ -28,12 +28,12 @@ import {
 import {
   mockBharatNetCustomers,
   getCustomerAnalytics,
-} from "../data/mockBharatNetData";
+} from "../__mocks__/mockBharatNetData";
 import {
   connectionLeads,
   planUpgrades,
   supportTickets,
-} from "../services/dataService";
+} from "../__mocks__/mockDataService";
 
 const Reports: React.FC = () => {
   const [dateRange, setDateRange] = useState("6months");

@@ -11,6 +11,16 @@ export function requireAuth(
   next: NextFunction
 ) {
   try {
+    // Validate JWT_SECRET exists at runtime
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error("❌ FATAL: JWT_SECRET environment variable is not set!");
+      return res.status(500).json({
+        success: false,
+        error: { message: "Server configuration error" },
+      });
+    }
+
     const header = req.headers.authorization;
     if (!header)
       return res.status(401).json({
@@ -19,7 +29,7 @@ export function requireAuth(
       });
 
     const token = header.replace("Bearer ", "");
-    const payload = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     next();
   } catch (err) {

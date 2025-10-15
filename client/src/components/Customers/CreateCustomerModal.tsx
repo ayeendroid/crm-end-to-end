@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
+import { createCustomer } from "../../services/customerService";
 
 interface CreateCustomerModalProps {
   isOpen: boolean;
@@ -62,62 +63,90 @@ const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/customers", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          company: formData.company,
-          address: {
-            street: formData.street,
-            city: formData.city,
-            state: formData.state,
-            zipCode: formData.zipCode,
-            country: formData.country,
-          },
-          status: formData.status,
-          ispData: {
-            plan: {
-              type: formData.planType,
-              speed: formData.speed,
-              price: formData.price,
-              billingCycle: formData.billingCycle,
-              ottApps: formData.ottApps,
-              liveChannels: formData.liveChannels,
-            },
-            usage: {
-              dataConsumed: 0,
-              averageSpeed: parseFloat(formData.speed),
-              uptime: 99.5,
-              mostUsedOTT: formData.ottApps,
-              peakUsageHours: ["20:00-23:00"],
-            },
-            customerSince: new Date(),
-            lifetimeValue: formData.price,
-            churnRisk: "Low",
-            npsScore: 50,
-            tickets: 0, // Changed from [] to 0 (Number)
-            satisfaction: 5,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create customer");
+      // Basic validation
+      if (!formData.firstName || !formData.lastName || !formData.email) {
+        toast.error(
+          "Please fill in all required fields (First Name, Last Name, Email)"
+        );
+        setLoading(false);
+        return;
       }
+
+      // Build customer data - only include optional fields if they have values
+      const customerData: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        status: formData.status as "active" | "inactive" | "prospect",
+        source: "website",
+      };
+
+      // Only include phone if it has a value
+      if (formData.phone && formData.phone.trim()) {
+        customerData.phone = formData.phone.trim();
+      }
+
+      // Only include company if it has a value
+      if (formData.company && formData.company.trim()) {
+        customerData.company = formData.company.trim();
+      }
+
+      // Only include address if at least one field has a value
+      if (
+        formData.street ||
+        formData.city ||
+        formData.state ||
+        formData.zipCode
+      ) {
+        customerData.address = {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country,
+        };
+      }
+
+      // Include ISP data
+      customerData.ispData = {
+        plan: {
+          type: formData.planType as "Fiber" | "Broadband" | "Wireless",
+          speed: formData.speed,
+          price: formData.price,
+          billingCycle: formData.billingCycle as
+            | "Monthly"
+            | "Quarterly"
+            | "Annual",
+          ottApps: formData.ottApps,
+          liveChannels: formData.liveChannels,
+        },
+        usage: {
+          dataConsumed: 0,
+          averageSpeed: parseFloat(formData.speed),
+          uptime: 99.5,
+          mostUsedOTT: formData.ottApps,
+          peakUsageHours: ["20:00-23:00"],
+        },
+        customerSince: new Date(),
+        lifetimeValue: formData.price,
+        churnRisk: "Low",
+        npsScore: 50,
+        tickets: 0,
+        satisfaction: 5 as 1 | 2 | 3 | 4 | 5,
+      };
+
+      await createCustomer(customerData);
 
       toast.success("Customer created successfully!");
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating customer:", error);
-      toast.error("Failed to create customer");
+      // Error is already handled by axios interceptor
+      // Only show additional error if needed
+      if (!error.response) {
+        toast.error("Failed to create customer");
+      }
     } finally {
       setLoading(false);
     }

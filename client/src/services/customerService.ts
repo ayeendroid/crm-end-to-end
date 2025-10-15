@@ -129,3 +129,14 @@ export const updateCustomer = async (
 export const deleteCustomer = async (id: string): Promise<void> => {
   await api.delete(`/customers/${id}`);
 };
+
+// Default export
+const customerService = {
+  getCustomers,
+  getCustomer,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+};
+
+export default customerService;

@@ -27,11 +27,15 @@ const Login: React.FC = () => {
       // Parse user data from response
       const userData = {
         id: response.user.id,
+        _id: response.user.id, // Add _id for backward compatibility
         firstName: response.user.name.split(" ")[0] || "",
         lastName: response.user.name.split(" ").slice(1).join(" ") || "",
         email: response.user.email,
         role: response.user.role,
       };
+
+      // Store user data in localStorage for components that need it
+      localStorage.setItem("user", JSON.stringify(userData));
 
       // Update auth store
       login(userData, response.token);

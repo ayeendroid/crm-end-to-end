@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRM API Tester</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+      .result {
+        margin-top: 15px;
+        padding: 10px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .success {
+        border-left: 4px solid #4caf50;
+        background: #e8f5e9;
+      }
+      .error {
+        border-left: 4px solid #f44336;
+        background: #ffebee;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧪 CRM API Tester</h1>
+    <p>Use this to test if the backend is working correctly</p>
+
+    <!-- Backend Health Check -->
+    <div class="test-section">
+      <h2>1. Backend Health Check</h2>
+      <button onclick="testBackend()">Test Backend</button>
+      <div id="backend-result" class="result" style="display: none"></div>
+    </div>
+
+    <!-- Login Test -->
+    <div class="test-section">
+      <h2>2. Login Test</h2>
+      <input
+        type="email"
+        id="login-email"
+        placeholder="Email"
+        value="admin@crm.com"
+      />
+      <input
+        type="password"
+        id="login-password"
+        placeholder="Password"
+        value="password123"
+      />
+      <button onclick="testLogin()">Login</button>
+      <div id="login-result" class="result" style="display: none"></div>
+    </div>
+
+    <!-- Create Customer Test -->
+    <div class="test-section">
+      <h2>3. Create Customer Test</h2>
+      <input
+        type="text"
+        id="customer-firstName"
+        placeholder="First Name"
+        value="John"
+      />
+      <input
+        type="text"
+        id="customer-lastName"
+        placeholder="Last Name"
+        value="Doe"
+      />
+      <input
+        type="email"
+        id="customer-email"
+        placeholder="Email"
+        value="john.doe@test.com"
+      />
+      <button onclick="testCreateCustomer()">Create Customer</button>
+      <div id="customer-result" class="result" style="display: none"></div>
+    </div>
+
+    <!-- Get Customers Test -->
+    <div class="test-section">
+      <h2>4. Get Customers Test</h2>
+      <button onclick="testGetCustomers()">Get All Customers</button>
+      <div id="get-customers-result" class="result" style="display: none"></div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:3000/api";
+      let token = null;
+
+      function showResult(elementId, data, isError = false) {
+        const element = document.getElementById(elementId);
+        element.style.display = "block";
+        element.className = "result " + (isError ? "error" : "success");
+        element.textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function testBackend() {
+        try {
+          const response = await fetch(`${API_URL}/customers`);
+          if (response.status === 401) {
+            showResult("backend-result", {
+              status: "Backend is running! ✅",
+              message:
+                "Got 401 (Unauthorized) - this is expected without login",
+              url: `${API_URL}/customers`,
+            });
+          } else {
+            showResult("backend-result", {
+              status: "Backend is running! ✅",
+              statusCode: response.status,
+              url: `${API_URL}/customers`,
+            });
+          }
+        } catch (error) {
+          showResult(
+            "backend-result",
+            {
+              status: "Backend is NOT running! ❌",
+              error: error.message,
+              hint: "Make sure backend is started: npm run dev",
+            },
+            true
+          );
+        }
+      }
+
+      async function testLogin() {
+        try {
+          const email = document.getElementById("login-email").value;
+          const password = document.getElementById("login-password").value;
+
+          const response = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.data && data.data.token) {
+            token = data.data.token;
+            localStorage.setItem("token", token);
+            showResult("login-result", {
+              status: "Login successful! ✅",
+              token: token.substring(0, 20) + "...",
+              user: data.data.user,
+            });
+          } else {
+            showResult(
+              "login-result",
+              {
+                status: "Login failed! ❌",
+                response: data,
+              },
+              true
+            );
+          }
+        } catch (error) {
+          showResult(
+            "login-result",
+            {
+              status: "Login error! ❌",
+              error: error.message,
+            },
+            true
+          );
+        }
+      }
+
+      async function testCreateCustomer() {
+        if (!token) {
+          token = localStorage.getItem("token");
+          if (!token) {
+            showResult(
+              "customer-result",
+              {
+                status: "Not logged in! ❌",
+                message: "Please login first",
+              },
+              true
+            );
+            return;
+          }
+        }
+
+        try {
+          const firstName = document.getElementById("customer-firstName").value;
+          const lastName = document.getElementById("customer-lastName").value;
+          const email = document.getElementById("customer-email").value;
+
+          const customerData = {
+            firstName,
+            lastName,
+            email,
+            source: "website",
+          };
+
+          const response = await fetch(`${API_URL}/customers`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(customerData),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showResult("customer-result", {
+              status: "Customer created successfully! ✅",
+              customer: data.data.customer,
+            });
+          } else {
+            showResult(
+              "customer-result",
+              {
+                status: "Failed to create customer! ❌",
+                statusCode: response.status,
+                response: data,
+              },
+              true
+            );
+          }
+        } catch (error) {
+          showResult(
+            "customer-result",
+            {
+              status: "Error! ❌",
+              error: error.message,
+            },
+            true
+          );
+        }
+      }
+
+      async function testGetCustomers() {
+        if (!token) {
+          token = localStorage.getItem("token");
+          if (!token) {
+            showResult(
+              "get-customers-result",
+              {
+                status: "Not logged in! ❌",
+                message: "Please login first",
+              },
+              true
+            );
+            return;
+          }
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/customers?page=1&limit=10`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showResult("get-customers-result", {
+              status: "Success! ✅",
+              count: data.data.customers.length,
+              total: data.data.pagination.total,
+              customers: data.data.customers,
+            });
+          } else {
+            showResult(
+              "get-customers-result",
+              {
+                status: "Failed! ❌",
+                statusCode: response.status,
+                response: data,
+              },
+              true
+            );
+          }
+        } catch (error) {
+          showResult(
+            "get-customers-result",
+            {
+              status: "Error! ❌",
+              error: error.message,
+            },
+            true
+          );
+        }
+      }
+
+      // Auto-load token if exists
+      window.onload = () => {
+        const savedToken = localStorage.getItem("token");
+        if (savedToken) {
+          token = savedToken;
+          console.log("Token loaded from localStorage");
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
+import { updateCustomer } from "../../services/customerService";
 
 interface Customer {
   _id: string;
@@ -109,52 +110,67 @@ const EditCustomerModal: React.FC<EditCustomerModalProps> = ({
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/customers/${customer._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            address: {
-              street: formData.street,
-              city: formData.city,
-              state: formData.state,
-              zipCode: formData.zipCode,
-              country: formData.country,
-            },
-            status: formData.status,
-            ispData: {
-              plan: {
-                type: formData.planType,
-                speed: formData.speed,
-                price: formData.price,
-                billingCycle: formData.billingCycle,
-                ottApps: formData.ottApps,
-                liveChannels: formData.liveChannels,
-              },
-            },
-          }),
-        }
-      );
+      // Build update object - only include fields with values
+      const updateData: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        status: formData.status as "active" | "inactive" | "prospect",
+      };
 
-      if (!response.ok) {
-        throw new Error("Failed to update customer");
+      // Only include phone if it has a value
+      if (formData.phone && formData.phone.trim()) {
+        updateData.phone = formData.phone.trim();
       }
+
+      // Only include company if it has a value
+      if (formData.company && formData.company.trim()) {
+        updateData.company = formData.company.trim();
+      }
+
+      // Only include address if at least one field has a value
+      if (
+        formData.street ||
+        formData.city ||
+        formData.state ||
+        formData.zipCode
+      ) {
+        updateData.address = {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country,
+        };
+      }
+
+      // Include ISP data
+      updateData.ispData = {
+        plan: {
+          type: formData.planType as "Fiber" | "Broadband" | "Wireless",
+          speed: formData.speed,
+          price: formData.price,
+          billingCycle: formData.billingCycle as
+            | "Monthly"
+            | "Quarterly"
+            | "Annual",
+          ottApps: formData.ottApps,
+          liveChannels: formData.liveChannels,
+        },
+      };
+
+      await updateCustomer(customer._id, updateData);
 
       toast.success("Customer updated successfully!");
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating customer:", error);
-      toast.error("Failed to update customer");
+      // Error is already handled by axios interceptor
+      // Only show additional error if needed
+      if (!error.response) {
+        toast.error("Failed to update customer");
+      }
     } finally {
       setLoading(false);
     }

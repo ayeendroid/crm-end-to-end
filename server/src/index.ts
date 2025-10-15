@@ -11,6 +11,7 @@ import leadsRoutes from "./routes/leads";
 import dealsRoutes from "./routes/deals";
 import activitiesRoutes from "./routes/activities";
 import usersRoutes from "./routes/users";
+import analyticsRoutes from "./routes/analytics";
 
 // Import middleware
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -20,6 +21,26 @@ import { apiLimiter } from "./middleware/rateLimiter";
 import logger from "./config/logger";
 
 dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ["MONGODB_URI", "JWT_SECRET"];
+const missingEnvVars = requiredEnvVars.filter(
+  (varName) => !process.env[varName]
+);
+
+if (missingEnvVars.length > 0) {
+  console.error(
+    `❌ FATAL: Missing required environment variables: ${missingEnvVars.join(
+      ", "
+    )}`
+  );
+  console.error("❌ Server cannot start without these environment variables.");
+  console.error("Please create a .env file in the server directory with:");
+  missingEnvVars.forEach((varName) => {
+    console.error(`   ${varName}=<your_value>`);
+  });
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/crm";
@@ -72,6 +93,7 @@ app.use("/api/leads", leadsRoutes);
 app.use("/api/deals", dealsRoutes);
 app.use("/api/activities", activitiesRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);

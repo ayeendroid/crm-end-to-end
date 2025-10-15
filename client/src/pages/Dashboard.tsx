@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useQuery } from "react-query";
 import {
   Users,
   UserPlus,
@@ -8,83 +9,118 @@ import {
   Calendar,
   AlertTriangle,
   CheckCircle,
-  Signal,
   Minus,
+  Target,
+  Award,
+  Loader2,
 } from "lucide-react";
 import ActivityTimeline from "../components/ActivityTimeline/ActivityTimeline";
-import {
-  mockBharatNetCustomers,
-  getCustomerAnalytics,
-} from "../data/mockBharatNetData";
+import analyticsService from "../services/analyticsService";
 
 const Dashboard: React.FC = () => {
-  // Get real analytics from BharatNet data
-  const analytics = getCustomerAnalytics(mockBharatNetCustomers);
+  const [dateRange] = useState<{ start?: string; end?: string }>({});
 
-  // Enhanced stats with ISP-specific metrics
-  const stats = [
-    {
-      name: "Monthly Revenue (MRR)",
-      value: `₹${(analytics.totalRevenue / 100000).toFixed(1)}L`,
-      rawValue: analytics.totalRevenue,
-      change: "+8.3%",
-      changeValue: "+₹35K",
-      changeType: "positive" as const,
-      icon: DollarSign,
-      gradient: "from-emerald-500 to-green-600",
-      bgGradient: "from-emerald-50 to-green-50",
-      iconBg: "bg-gradient-to-br from-emerald-500 to-green-600",
-    },
-    {
-      name: "Active Subscribers",
-      value: analytics.active.toLocaleString("en-IN"),
-      rawValue: analytics.active,
-      change: "+12.4%",
-      changeValue: "+52",
-      changeType: "positive" as const,
-      icon: Users,
-      gradient: "from-blue-500 to-indigo-600",
-      bgGradient: "from-blue-50 to-indigo-50",
-      iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
-    },
-    {
-      name: "Avg Uptime",
-      value: `${analytics.avgUptime}%`,
-      rawValue: parseFloat(analytics.avgUptime),
-      change: "+0.3%",
-      changeValue: "+0.3%",
-      changeType: "positive" as const,
-      icon: Signal,
-      gradient: "from-purple-500 to-pink-600",
-      bgGradient: "from-purple-50 to-pink-50",
-      iconBg: "bg-gradient-to-br from-purple-500 to-pink-600",
-    },
-    {
-      name: "Churn Rate",
-      value: "2.1%",
-      rawValue: 2.1,
-      change: "-0.5%",
-      changeValue: "-0.5%",
-      changeType: "positive" as const,
-      icon: TrendingDown,
-      gradient: "from-indigo-500 to-blue-600",
-      bgGradient: "from-indigo-50 to-blue-50",
-      iconBg: "bg-gradient-to-br from-indigo-500 to-blue-600",
-    },
-  ];
+  // Fetch overview metrics
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ["analytics-overview", dateRange],
+    queryFn: () => analyticsService.getOverview(dateRange.start, dateRange.end),
+  });
 
-  const alerts = [
-    {
-      type: "warning",
-      message: `${analytics.churnRisk.high} customers at high churn risk - immediate action needed`,
-      action: "View List",
-    },
-    {
-      type: "info",
-      message: `Average NPS Score: ${analytics.avgNPS}/10 - Customer satisfaction is strong`,
-      action: "Details",
-    },
-  ];
+  // Fetch customer insights
+  const { data: customerInsights, isLoading: insightsLoading } = useQuery({
+    queryKey: ["customer-insights"],
+    queryFn: () => analyticsService.getCustomerInsights(),
+  });
+
+  const isLoading = overviewLoading || insightsLoading;
+
+  // Enhanced stats with real API data
+  const stats = overview
+    ? [
+        {
+          name: "Monthly Revenue (MRR)",
+          value: `₹${(overview.revenue.monthly / 1000).toFixed(1)}K`,
+          rawValue: overview.revenue.monthly,
+          change: "+8.3%",
+          changeValue: `+₹${(overview.revenue.monthly * 0.083).toFixed(0)}`,
+          changeType: "positive" as const,
+          icon: DollarSign,
+          gradient: "from-emerald-500 to-green-600",
+          bgGradient: "from-emerald-50 to-green-50",
+          iconBg: "bg-gradient-to-br from-emerald-500 to-green-600",
+        },
+        {
+          name: "Active Customers",
+          value: overview.customers.active.toLocaleString("en-IN"),
+          rawValue: overview.customers.active,
+          change: "+12.4%",
+          changeValue: `+${Math.round(overview.customers.active * 0.124)}`,
+          changeType: "positive" as const,
+          icon: Users,
+          gradient: "from-blue-500 to-indigo-600",
+          bgGradient: "from-blue-50 to-indigo-50",
+          iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+        },
+        {
+          name: "Qualified Leads",
+          value: overview.leads.qualified.toLocaleString("en-IN"),
+          rawValue: overview.leads.qualified,
+          change: `${overview.metrics.conversionRate.toFixed(1)}%`,
+          changeValue: "Conv. Rate",
+          changeType: "positive" as const,
+          icon: Target,
+          gradient: "from-purple-500 to-pink-600",
+          bgGradient: "from-purple-50 to-pink-50",
+          iconBg: "bg-gradient-to-br from-purple-500 to-pink-600",
+        },
+        {
+          name: "Won Deals",
+          value: overview.deals.won.toLocaleString("en-IN"),
+          rawValue: overview.deals.won,
+          change: `${overview.metrics.winRate}%`,
+          changeValue: "Win Rate",
+          changeType: "positive" as const,
+          icon: Award,
+          gradient: "from-indigo-500 to-blue-600",
+          bgGradient: "from-indigo-50 to-blue-50",
+          iconBg: "bg-gradient-to-br from-indigo-500 to-blue-600",
+        },
+      ]
+    : [];
+
+  const alerts =
+    customerInsights && overview
+      ? [
+          {
+            type: "warning",
+            message: `${
+              customerInsights.churnRisk.find((r) => r._id === "High")?.count ||
+              0
+            } customers at high churn risk - immediate action needed`,
+            action: "View List",
+          },
+          {
+            type: "info",
+            message: `Average NPS Score: ${customerInsights.nps.avgNPS.toFixed(
+              1
+            )}/10 - Customer satisfaction is ${
+              customerInsights.nps.avgNPS >= 8 ? "strong" : "needs improvement"
+            }`,
+            action: "Details",
+          },
+          {
+            type: "success",
+            message: `Total Revenue: ₹${(
+              overview.revenue.total / 100000
+            ).toFixed(
+              1
+            )}L - Average deal size: ₹${overview.revenue.average.toLocaleString(
+              "en-IN"
+            )}`,
+            action: "View Reports",
+          },
+        ]
+      : [];
 
   return (
     <div className="space-y-6">
@@ -95,7 +131,7 @@ const Dashboard: React.FC = () => {
             BharatNet Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back, Anmol! Here's what's happening with your ISP today.
+            Welcome back! Here's what's happening with your CRM today.
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -109,86 +145,98 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+          <span className="ml-3 text-gray-600">Loading analytics...</span>
+        </div>
+      )}
+
       {/* Enhanced Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          const TrendIcon =
-            stat.changeType === "positive"
-              ? TrendingUp
-              : stat.changeType === "negative"
-              ? TrendingDown
-              : Minus;
+      {!isLoading && stats.length > 0 && (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            const TrendIcon =
+              stat.changeType === "positive"
+                ? TrendingUp
+                : stat.changeType === "negative"
+                ? TrendingDown
+                : Minus;
 
-          return (
-            <div
-              key={stat.name}
-              className="group relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-            >
-              {/* Gradient Background Overlay */}
+            return (
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-              ></div>
+                key={stat.name}
+                className="group relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:border-gray-300 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+              >
+                {/* Gradient Background Overlay */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                ></div>
 
-              {/* Content */}
-              <div className="relative">
-                {/* Icon and Trend */}
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`${stat.iconBg} w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg ${
-                      stat.changeType === "positive"
-                        ? "bg-green-100 text-green-700"
-                        : stat.changeType === "negative"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    <TrendIcon className="h-3.5 w-3.5" />
-                    <span className="text-xs font-semibold">{stat.change}</span>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-600">
-                    {stat.name}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900 tracking-tight">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <span
-                      className={
-                        stat.changeType === "positive"
-                          ? "text-green-600"
-                          : stat.changeType === "negative"
-                          ? "text-red-600"
-                          : "text-gray-600"
-                      }
+                {/* Content */}
+                <div className="relative">
+                  {/* Icon and Trend */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div
+                      className={`${stat.iconBg} w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
                     >
-                      {stat.changeValue}
-                    </span>
-                    <span>vs last month</span>
-                  </p>
-                </div>
-              </div>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <div
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg ${
+                        stat.changeType === "positive"
+                          ? "bg-green-100 text-green-700"
+                          : stat.changeType === "negative"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      <TrendIcon className="h-3.5 w-3.5" />
+                      <span className="text-xs font-semibold">
+                        {stat.change}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Bottom gradient line on hover */}
-              <div
-                className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
-              ></div>
-            </div>
-          );
-        })}
-      </div>
+                  {/* Stats */}
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.name}
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900 tracking-tight">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <span
+                        className={
+                          stat.changeType === "positive"
+                            ? "text-green-600"
+                            : stat.changeType === "negative"
+                            ? "text-red-600"
+                            : "text-gray-600"
+                        }
+                      >
+                        {stat.changeValue}
+                      </span>
+                      <span>vs last month</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Bottom gradient line on hover */}
+                <div
+                  className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}
+                ></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Alerts Section */}
-      {alerts.length > 0 && (
+      {!isLoading && alerts.length > 0 && (
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">

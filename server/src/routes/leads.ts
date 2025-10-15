@@ -2,12 +2,20 @@ import { Router } from "express";
 import { Lead } from "../models/Lead";
 import requireAuth from "../middleware/auth";
 import { asyncHandler } from "../middleware/errorHandler";
+import {
+  validateLead,
+  validateObjectId,
+  validatePagination,
+} from "../middleware/validators";
+import { checkValidationResult } from "../middleware/validateRequest";
 
 const router = Router();
 
 router.get(
   "/",
   requireAuth,
+  validatePagination,
+  checkValidationResult,
   asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
@@ -34,6 +42,8 @@ router.get(
 router.post(
   "/",
   requireAuth,
+  validateLead,
+  checkValidationResult,
   asyncHandler(async (req, res) => {
     const lead = new Lead(req.body);
     await lead.save();
@@ -47,6 +57,8 @@ router.post(
 router.get(
   "/:id",
   requireAuth,
+  validateObjectId,
+  checkValidationResult,
   asyncHandler(async (req, res) => {
     const lead = await Lead.findById(req.params.id);
     if (!lead)
@@ -64,9 +76,13 @@ router.get(
 router.put(
   "/:id",
   requireAuth,
+  validateObjectId,
+  validateLead,
+  checkValidationResult,
   asyncHandler(async (req, res) => {
     const lead = await Lead.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
+      runValidators: true,
     });
     if (!lead)
       return res.status(404).json({
@@ -83,6 +99,8 @@ router.put(
 router.delete(
   "/:id",
   requireAuth,
+  validateObjectId,
+  checkValidationResult,
   asyncHandler(async (req, res) => {
     const lead = await Lead.findByIdAndDelete(req.params.id);
     if (!lead)

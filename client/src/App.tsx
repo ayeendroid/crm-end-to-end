@@ -15,11 +15,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
-import EnhancedDashboard from "./pages/EnhancedDashboard";
 import PipelineView from "./pages/PipelineView";
 import Customer360View from "./pages/Customer360View";
 import Customers from "./pages/Customers";
-import CustomersNew from "./pages/CustomersNew";
 import Leads from "./pages/Leads";
 import Deals from "./pages/Deals";
 import Activities from "./pages/Activities";
@@ -84,11 +82,9 @@ function App() {
               ) : (
                 <Route path="/" element={<Layout />}>
                   <Route index element={<Navigate to="/dashboard" replace />} />
-                  <Route path="dashboard" element={<EnhancedDashboard />} />
-                  <Route path="dashboard-classic" element={<Dashboard />} />
+                  <Route path="dashboard" element={<Dashboard />} />
                   <Route path="pipeline" element={<PipelineView />} />
                   <Route path="customers" element={<Customers />} />
-                  <Route path="customers-new" element={<CustomersNew />} />
                   <Route path="customers/:id" element={<Customer360View />} />
                   <Route path="leads" element={<Leads />} />
                   <Route path="deals" element={<Deals />} />

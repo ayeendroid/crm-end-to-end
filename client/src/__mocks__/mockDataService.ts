@@ -4,7 +4,7 @@
 import {
   mockBharatNetCustomers,
   type BharatNetCustomer,
-} from "../data/mockBharatNetData";
+} from "./mockBharatNetData";
 
 // ============================================================================
 // CONNECTION LEADS / INQUIRIES
