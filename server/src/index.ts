@@ -12,6 +12,7 @@ import dealsRoutes from "./routes/deals";
 import activitiesRoutes from "./routes/activities";
 import usersRoutes from "./routes/users";
 import analyticsRoutes from "./routes/analytics";
+import reportsRoutes from "./routes/reports";
 
 // Import middleware
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -94,6 +95,7 @@ app.use("/api/deals", dealsRoutes);
 app.use("/api/activities", activitiesRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/reports", reportsRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);
