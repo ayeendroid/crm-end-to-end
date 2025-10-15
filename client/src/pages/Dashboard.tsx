@@ -13,17 +13,81 @@ import {
   Target,
   Award,
   Loader2,
+  Download,
+  Filter,
+  BarChart3,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from "recharts";
 import ActivityTimeline from "../components/ActivityTimeline/ActivityTimeline";
 import analyticsService from "../services/analyticsService";
 
 const Dashboard: React.FC = () => {
-  const [dateRange] = useState<{ start?: string; end?: string }>({});
+  const [dateRange, setDateRange] = useState<"7d" | "30d" | "90d" | "1y">(
+    "30d"
+  );
+  const [showCharts, setShowCharts] = useState(true);
+
+  // Calculate date range
+  const getDateRange = () => {
+    const end = new Date();
+    const start = new Date();
+    switch (dateRange) {
+      case "7d":
+        start.setDate(start.getDate() - 7);
+        break;
+      case "30d":
+        start.setDate(start.getDate() - 30);
+        break;
+      case "90d":
+        start.setDate(start.getDate() - 90);
+        break;
+      case "1y":
+        start.setFullYear(start.getFullYear() - 1);
+        break;
+    }
+    return { start: start.toISOString(), end: end.toISOString() };
+  };
+
+  const { start, end } = getDateRange();
 
   // Fetch overview metrics
   const { data: overview, isLoading: overviewLoading } = useQuery({
-    queryKey: ["analytics-overview", dateRange],
-    queryFn: () => analyticsService.getOverview(dateRange.start, dateRange.end),
+    queryKey: ["analytics-overview", start, end],
+    queryFn: () => analyticsService.getOverview(start, end),
+  });
+
+  // Fetch trend data
+  const { data: trends, isLoading: trendsLoading } = useQuery({
+    queryKey: ["analytics-trends"],
+    queryFn: () => analyticsService.getTrends(6), // Last 6 months
+  });
+
+  // Fetch deal pipeline
+  const { data: pipeline, isLoading: pipelineLoading } = useQuery({
+    queryKey: ["analytics-pipeline"],
+    queryFn: () => analyticsService.getDealPipeline(),
+  });
+
+  // Fetch lead performance
+  const { data: leadPerf, isLoading: leadPerfLoading } = useQuery({
+    queryKey: ["analytics-lead-performance"],
+    queryFn: () => analyticsService.getLeadPerformance(),
   });
 
   // Fetch customer insights
@@ -32,7 +96,59 @@ const Dashboard: React.FC = () => {
     queryFn: () => analyticsService.getCustomerInsights(),
   });
 
-  const isLoading = overviewLoading || insightsLoading;
+  const isLoading =
+    overviewLoading ||
+    insightsLoading ||
+    trendsLoading ||
+    pipelineLoading ||
+    leadPerfLoading;
+
+  // Prepare chart data from trends
+  const revenueChartData =
+    trends?.revenue.map((item) => ({
+      month: `${item._id.month}/${item._id.year}`,
+      revenue: item.revenue / 1000, // Convert to thousands
+    })) || [];
+
+  const customerChartData =
+    trends?.customers.map((item) => ({
+      month: `${item._id.month}/${item._id.year}`,
+      customers: item.count,
+    })) || [];
+
+  const dealsChartData =
+    trends?.deals.map((item) => ({
+      month: `${item._id.month}/${item._id.year}`,
+      deals: item.count,
+      revenue: item.revenue / 1000,
+    })) || [];
+
+  // Prepare pipeline data
+  const pipelineChartData =
+    pipeline?.byStage.map((stage) => ({
+      stage: stage._id,
+      count: stage.count,
+      value: stage.totalValue / 1000, // Convert to thousands
+    })) || [];
+
+  // Prepare lead source data
+  const leadSourceData =
+    leadPerf?.bySource.map((source) => ({
+      name: source._id,
+      value: source.count,
+      qualified: source.qualified,
+    })) || [];
+
+  // Colors for charts
+  const COLORS = [
+    "#3B82F6", // blue
+    "#10B981", // green
+    "#F59E0B", // amber
+    "#EF4444", // red
+    "#8B5CF6", // purple
+    "#EC4899", // pink
+    "#14B8A6", // teal
+  ];
 
   // Enhanced stats with real API data
   const stats = overview
@@ -134,13 +250,42 @@ const Dashboard: React.FC = () => {
             Welcome back! Here's what's happening with your CRM today.
           </p>
         </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+        <div className="mt-4 flex gap-2 md:mt-0 md:ml-4">
+          {/* Date Range Picker */}
+          <div className="relative inline-block text-left">
+            <select
+              value={dateRange}
+              onChange={(e) =>
+                setDateRange(e.target.value as "7d" | "30d" | "90d" | "1y")
+              }
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="1y">Last year</option>
+            </select>
+          </div>
+
+          {/* Toggle Charts Button */}
           <button
-            type="button"
+            onClick={() => setShowCharts(!showCharts)}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <Calendar className="mr-2 h-4 w-4" />
-            Last 30 days
+            <BarChart3 className="mr-2 h-4 w-4" />
+            {showCharts ? "Hide" : "Show"} Charts
+          </button>
+
+          {/* Export Button */}
+          <button
+            onClick={() => {
+              // Export to PDF functionality - placeholder for now
+              alert("Export to PDF feature coming soon!");
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export
           </button>
         </div>
       </div>
@@ -262,6 +407,309 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Charts Section */}
+      {!isLoading && showCharts && (
+        <>
+          {/* Revenue & Deals Trend */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Revenue Trend Chart */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Revenue Trend (Last 6 Months)
+              </h3>
+              {revenueChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={revenueChartData}>
+                    <defs>
+                      <linearGradient
+                        id="colorRevenue"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#3B82F6"
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#3B82F6"
+                          stopOpacity={0.1}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value}K`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#FFF",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(value: any) => [
+                        `₹${value.toFixed(1)}K`,
+                        "Revenue",
+                      ]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">
+                  <Filter className="h-12 w-12" />
+                  <span className="ml-2">No data available</span>
+                </div>
+              )}
+            </div>
+
+            {/* Deals Trend Chart */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Deals Performance
+              </h3>
+              {dealsChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={dealsChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value}K`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#FFF",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="deals"
+                      stroke="#8B5CF6"
+                      strokeWidth={2}
+                      name="Deal Count"
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      name="Revenue (₹K)"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">
+                  <Filter className="h-12 w-12" />
+                  <span className="ml-2">No data available</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Pipeline & Lead Sources */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Deal Pipeline Chart */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Deal Pipeline by Stage
+              </h3>
+              {pipelineChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={pipelineChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis
+                      dataKey="stage"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#6B7280"
+                      style={{ fontSize: 12 }}
+                      tickFormatter={(value) => `₹${value}K`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#FFF",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Bar
+                      yAxisId="left"
+                      dataKey="count"
+                      fill="#3B82F6"
+                      name="Deal Count"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar
+                      yAxisId="right"
+                      dataKey="value"
+                      fill="#10B981"
+                      name="Value (₹K)"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">
+                  <Filter className="h-12 w-12" />
+                  <span className="ml-2">No data available</span>
+                </div>
+              )}
+            </div>
+
+            {/* Lead Sources Pie Chart */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Lead Distribution by Source
+              </h3>
+              {leadSourceData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={leadSourceData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({
+                        cx,
+                        cy,
+                        midAngle,
+                        innerRadius,
+                        outerRadius,
+                        percent,
+                      }) => {
+                        const radius =
+                          innerRadius + (outerRadius - innerRadius) * 0.5;
+                        const x =
+                          cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+                        const y =
+                          cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="white"
+                            textAnchor={x > cx ? "start" : "end"}
+                            dominantBaseline="central"
+                            style={{ fontSize: 12, fontWeight: "bold" }}
+                          >
+                            {`${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      outerRadius={100}
+                      dataKey="value"
+                    >
+                      {leadSourceData.map((_entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#FFF",
+                        border: "1px solid #E5E7EB",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-64 text-gray-400">
+                  <Filter className="h-12 w-12" />
+                  <span className="ml-2">No data available</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Customer Growth Chart */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Customer Growth Trend
+            </h3>
+            {customerChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={customerChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#6B7280"
+                    style={{ fontSize: 12 }}
+                  />
+                  <YAxis stroke="#6B7280" style={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#FFF",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar
+                    dataKey="customers"
+                    fill="#8B5CF6"
+                    name="New Customers"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-400">
+                <Filter className="h-12 w-12" />
+                <span className="ml-2">No data available</span>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Activity Timeline and Quick Actions */}
