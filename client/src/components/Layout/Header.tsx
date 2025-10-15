@@ -12,6 +12,9 @@ import {
   Search,
   Command,
 } from "lucide-react";
+import { useAuthStore } from "../../stores/authStore";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -21,6 +24,17 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) => {
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const profileRef = React.useRef<HTMLDivElement>(null);
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -151,9 +165,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) => {
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-gray-900 truncate max-w-[100px]">
-                    Anmol
+                    {user?.firstName || "User"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">Admin</p>
+                  <p className="text-xs text-gray-500 truncate capitalize">
+                    {user?.role || "User"}
+                  </p>
                 </div>
               </button>
 
@@ -233,7 +249,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) => {
 
                     <button
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      onClick={() => setIsProfileOpen(false)}
+                      onClick={handleLogout}
                     >
                       <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
                         <LogOut className="h-4 w-4 text-red-600" />

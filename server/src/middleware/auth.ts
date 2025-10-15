@@ -13,14 +13,20 @@ export function requireAuth(
   try {
     const header = req.headers.authorization;
     if (!header)
-      return res.status(401).json({ message: "Missing authorization header" });
+      return res.status(401).json({
+        success: false,
+        error: { message: "Missing authorization header" },
+      });
 
     const token = header.replace("Bearer ", "");
     const payload = jwt.verify(token, process.env.JWT_SECRET || "secret");
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({
+      success: false,
+      error: { message: "Unauthorized" },
+    });
   }
 }
 

@@ -1,37 +1,155 @@
 import { Router } from "express";
 import { Customer } from "../models/Customer";
 import requireAuth from "../middleware/auth";
+import {
+  validateCustomer,
+  validateCustomerUpdate,
+  validateObjectId,
+  validatePagination,
+} from "../middleware/validators";
+import { checkValidationResult } from "../middleware/validateRequest";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
-router.get("/", requireAuth, async (req, res) => {
-  const customers = await Customer.find().limit(100);
-  res.json(customers);
-});
+// Get all customers with pagination
+router.get(
+  "/",
+  requireAuth,
+  validatePagination,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
 
-router.post("/", requireAuth, async (req, res) => {
-  const data = req.body;
-  const customer = new Customer(data);
-  await customer.save();
-  res.status(201).json(customer);
-});
+    // Get filters from query
+    const filters: any = {};
+    if (req.query.status) filters.status = req.query.status;
+    if (req.query.source) filters.source = req.query.source;
+    if (req.query.search) {
+      filters.$or = [
+        { firstName: { $regex: req.query.search, $options: "i" } },
+        { lastName: { $regex: req.query.search, $options: "i" } },
+        { email: { $regex: req.query.search, $options: "i" } },
+        { company: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
 
-router.get("/:id", requireAuth, async (req, res) => {
-  const customer = await Customer.findById(req.params.id);
-  if (!customer) return res.status(404).json({ message: "Not found" });
-  res.json(customer);
-});
+    const [customers, total] = await Promise.all([
+      Customer.find(filters)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .populate("assignedTo", "firstName lastName email"),
+      Customer.countDocuments(filters),
+    ]);
 
-router.put("/:id", requireAuth, async (req, res) => {
-  const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-  });
-  res.json(customer);
-});
+    res.json({
+      success: true,
+      data: {
+        customers,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  })
+);
 
-router.delete("/:id", requireAuth, async (req, res) => {
-  await Customer.findByIdAndDelete(req.params.id);
-  res.json({ ok: true });
-});
+// Create customer
+router.post(
+  "/",
+  requireAuth,
+  validateCustomer,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const customerData = {
+      ...req.body,
+      assignedTo: (req as any).user.id, // From auth middleware
+    };
+
+    const customer = new Customer(customerData);
+    await customer.save();
+
+    res.status(201).json({
+      success: true,
+      data: { customer },
+      message: "Customer created successfully",
+    });
+  })
+);
+
+// Get single customer
+router.get(
+  "/:id",
+  requireAuth,
+  validateObjectId,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findById(req.params.id).populate(
+      "assignedTo",
+      "firstName lastName email"
+    );
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    res.json({
+      success: true,
+      data: { customer },
+    });
+  })
+);
+
+// Update customer
+router.put(
+  "/:id",
+  requireAuth,
+  validateObjectId,
+  validateCustomerUpdate,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    ).populate("assignedTo", "firstName lastName email");
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    res.json({
+      success: true,
+      data: { customer },
+      message: "Customer updated successfully",
+    });
+  })
+);
+
+// Delete customer
+router.delete(
+  "/:id",
+  requireAuth,
+  validateObjectId,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const customer = await Customer.findByIdAndDelete(req.params.id);
+
+    if (!customer) {
+      throw new AppError("Customer not found", 404);
+    }
+
+    res.json({
+      success: true,
+      message: "Customer deleted successfully",
+    });
+  })
+);
 
 export default router;

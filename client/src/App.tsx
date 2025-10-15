@@ -11,6 +11,7 @@ import { Toaster } from "react-hot-toast";
 // Layout Components
 import Layout from "./components/Layout/Layout";
 import CommandPalette from "./components/CommandPalette";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
@@ -18,6 +19,7 @@ import EnhancedDashboard from "./pages/EnhancedDashboard";
 import PipelineView from "./pages/PipelineView";
 import Customer360View from "./pages/Customer360View";
 import Customers from "./pages/Customers";
+import CustomersNew from "./pages/CustomersNew";
 import Leads from "./pages/Leads";
 import Deals from "./pages/Deals";
 import Activities from "./pages/Activities";
@@ -58,49 +60,52 @@ function App() {
   }, [openCommandPalette]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="App">
-          {/* Command Palette */}
-          <CommandPalette isOpen={isOpen} onClose={closeCommandPalette} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="App">
+            {/* Command Palette */}
+            <CommandPalette isOpen={isOpen} onClose={closeCommandPalette} />
 
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: "#363636",
-                color: "#fff",
-              },
-            }}
-          />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: "#363636",
+                  color: "#fff",
+                },
+              }}
+            />
 
-          <Routes>
-            {!isAuthenticated ? (
-              <Route path="*" element={<Login />} />
-            ) : (
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<EnhancedDashboard />} />
-                <Route path="dashboard-classic" element={<Dashboard />} />
-                <Route path="pipeline" element={<PipelineView />} />
-                <Route path="customers" element={<Customers />} />
-                <Route path="customers/:id" element={<Customer360View />} />
-                <Route path="leads" element={<Leads />} />
-                <Route path="deals" element={<Deals />} />
-                <Route path="activities" element={<Activities />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="settings" element={<Settings />} />
-                <Route
-                  path="*"
-                  element={<Navigate to="/dashboard" replace />}
-                />
-              </Route>
-            )}
-          </Routes>
-        </div>
-      </Router>
-    </QueryClientProvider>
+            <Routes>
+              {!isAuthenticated ? (
+                <Route path="*" element={<Login />} />
+              ) : (
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<Navigate to="/dashboard" replace />} />
+                  <Route path="dashboard" element={<EnhancedDashboard />} />
+                  <Route path="dashboard-classic" element={<Dashboard />} />
+                  <Route path="pipeline" element={<PipelineView />} />
+                  <Route path="customers" element={<Customers />} />
+                  <Route path="customers-new" element={<CustomersNew />} />
+                  <Route path="customers/:id" element={<Customer360View />} />
+                  <Route path="leads" element={<Leads />} />
+                  <Route path="deals" element={<Deals />} />
+                  <Route path="activities" element={<Activities />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route
+                    path="*"
+                    element={<Navigate to="/dashboard" replace />}
+                  />
+                </Route>
+              )}
+            </Routes>
+          </div>
+        </Router>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

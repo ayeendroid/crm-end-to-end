@@ -132,7 +132,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: UserPlus,
     },
     {
-      name: "Deals",
+      name: "Plan Changes",
       href: "/deals",
       icon: DollarSign,
     },

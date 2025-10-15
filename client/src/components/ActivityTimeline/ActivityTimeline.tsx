@@ -106,114 +106,115 @@ const getActivityConfig = (type: Activity["type"]) => {
   return configs[type];
 };
 
-// Mock activities data
+// Mock activities data - BharatNet ISP specific
 const mockActivities: Activity[] = [
   {
     id: "1",
     type: "call",
-    title: "Phone call with Acme Corporation",
+    title: "Customer support call - Rahul Sharma",
     description:
-      "Discussed Q4 requirements and pricing. Very interested in premium plan.",
+      "Resolved slow internet issue. Router restart fixed the problem. Speed now at 95Mbps.",
     user: {
-      name: "Rajesh Kumar",
-      initials: "RK",
+      name: "Support Team",
+      initials: "ST",
     },
-    customer: "Acme Corporation",
+    customer: "Rahul Sharma - Mumbai",
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     status: "completed",
   },
   {
     id: "2",
     type: "email",
-    title: "Sent proposal to TechStart India",
+    title: "Welcome email sent - Priya Kumar",
     description:
-      "Detailed proposal with pricing and implementation timeline attached.",
+      "New Fiber 1Gbps activation. Sent OTT app credentials and setup guide.",
     user: {
-      name: "Priya Sharma",
-      initials: "PS",
+      name: "Onboarding Team",
+      initials: "OT",
     },
-    customer: "TechStart India Ltd",
+    customer: "Priya Kumar - Delhi",
     timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
     status: "completed",
   },
   {
     id: "3",
     type: "meeting",
-    title: "Product demo scheduled",
+    title: "Site survey scheduled - Amit Patel",
     description:
-      "Online demo meeting with decision makers next Tuesday at 3 PM.",
+      "Fiber feasibility check for new connection. Technician visit on Friday 2 PM.",
     user: {
-      name: "Amit Patel",
-      initials: "AP",
+      name: "Sales Team",
+      initials: "SA",
     },
-    customer: "Global Solutions Pvt Ltd",
+    customer: "Amit Patel - Bangalore",
     timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
     status: "pending",
   },
   {
     id: "4",
     type: "note",
-    title: "Added follow-up note",
+    title: "High churn risk flagged - Anjali Singh",
     description:
-      "Customer needs time to discuss with team. Follow up next week.",
+      "Customer complained about buffering on Netflix. Technical team investigating.",
     user: {
-      name: "Sneha Reddy",
-      initials: "SR",
+      name: "Customer Success",
+      initials: "CS",
     },
-    customer: "Digital Innovations Inc",
+    customer: "Anjali Singh - Hyderabad",
     timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
   },
   {
     id: "5",
     type: "task",
-    title: "Completed contract review",
-    description: "Legal team approved all terms. Ready to send for signature.",
+    title: "Plan upgrade completed - Vikram Reddy",
+    description:
+      "Successfully upgraded from 100Mbps to 500Mbps Fiber. Added 5 more OTT apps.",
     user: {
-      name: "Vikram Singh",
-      initials: "VS",
+      name: "Account Manager",
+      initials: "AM",
     },
-    customer: "Enterprise Corp",
+    customer: "Vikram Reddy - Chennai",
     timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
     status: "completed",
   },
   {
     id: "6",
     type: "message",
-    title: "WhatsApp message received",
+    title: "WhatsApp inquiry - Neha Gupta",
     description:
-      "Customer inquired about bulk discount pricing and payment terms.",
+      "Asked about adding Disney+ Hotstar to current plan. Sent pricing details.",
     user: {
-      name: "Anita Desai",
-      initials: "AD",
+      name: "Support Team",
+      initials: "ST",
     },
-    customer: "Retail Solutions Ltd",
+    customer: "Neha Gupta - Pune",
     timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
   },
   {
     id: "7",
     type: "video",
-    title: "Video consultation completed",
+    title: "Remote troubleshooting - Rajesh Kumar",
     description:
-      "Walked through platform features and answered technical questions.",
+      "Guided through WiFi router configuration. Optimized for 4K streaming.",
     user: {
-      name: "Karthik Menon",
-      initials: "KM",
+      name: "Technical Team",
+      initials: "TT",
     },
-    customer: "Tech Innovators",
+    customer: "Rajesh Kumar - Ahmedabad",
     timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
     status: "completed",
   },
   {
     id: "8",
     type: "call",
-    title: "Follow-up call scheduled",
+    title: "Payment reminder - Sanjay Verma",
     description:
-      "Reminder to call customer next Monday regarding contract signing.",
+      "Outstanding payment of ₹1,999. Sent payment link via SMS and email.",
     user: {
-      name: "Deepak Gupta",
-      initials: "DG",
+      name: "Billing Team",
+      initials: "BT",
     },
-    customer: "Metro Services",
+    customer: "Sanjay Verma - Jaipur",
     timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
     status: "pending",
   },

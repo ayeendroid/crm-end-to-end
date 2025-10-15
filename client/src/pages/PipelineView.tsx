@@ -53,7 +53,9 @@ const PipelineView: React.FC = () => {
         const matchesSearch =
           searchQuery === "" ||
           lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          lead.location.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          lead.location.city
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
           lead.location.state.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesPriority =
           priorityFilter === "All" || lead.priority === priorityFilter;
@@ -218,9 +220,11 @@ const PipelineView: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">Conversion Rate</p>
               <p className="text-2xl font-bold text-gray-900">
-                {((stages.find((s) => s.name === "Converted")?.count || 0) /
-                  totalLeads *
-                  100).toFixed(1)}
+                {(
+                  ((stages.find((s) => s.name === "Converted")?.count || 0) /
+                    totalLeads) *
+                  100
+                ).toFixed(1)}
                 %
               </p>
             </div>
@@ -289,7 +293,9 @@ const PipelineView: React.FC = () => {
                       <div className="space-y-1 mb-3">
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                           <MapPin className="h-3 w-3" />
-                          <span>{lead.location.city}, {lead.location.state}</span>
+                          <span>
+                            {lead.location.city}, {lead.location.state}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                           <Phone className="h-3 w-3" />
@@ -321,7 +327,10 @@ const PipelineView: React.FC = () => {
                         <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                           <Calendar className="h-3 w-3" />
                           <span>
-                            Survey: {new Date(lead.siteSurveyDate).toLocaleDateString("en-IN")}
+                            Survey:{" "}
+                            {new Date(lead.siteSurveyDate).toLocaleDateString(
+                              "en-IN"
+                            )}
                           </span>
                         </div>
                       )}

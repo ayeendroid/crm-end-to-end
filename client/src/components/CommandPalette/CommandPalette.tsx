@@ -42,51 +42,78 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
     // Quick Actions
     {
       id: "new-customer",
-      title: "Add New Customer",
-      subtitle: "Create a new customer record",
+      title: "Add New Subscriber",
+      subtitle: "Register a new internet subscriber",
       icon: <UserPlus className="w-5 h-5" />,
       category: "action",
       action: () => {
-        console.log("Navigate to add customer");
+        console.log("Navigate to add subscriber");
         onClose();
       },
-      keywords: ["customer", "client", "add", "new", "create"],
+      keywords: [
+        "subscriber",
+        "customer",
+        "client",
+        "add",
+        "new",
+        "create",
+        "connection",
+      ],
     },
     {
       id: "new-deal",
-      title: "Create New Deal",
-      subtitle: "Start tracking a new deal",
+      title: "Process Plan Upgrade",
+      subtitle: "Upgrade subscriber to higher plan",
       icon: <TrendingUp className="w-5 h-5" />,
       category: "action",
       action: () => {
-        console.log("Navigate to create deal");
+        console.log("Navigate to plan upgrade");
         onClose();
       },
-      keywords: ["deal", "opportunity", "sale", "new", "create"],
+      keywords: ["upgrade", "plan", "deal", "speed", "new", "create"],
     },
     {
       id: "new-task",
-      title: "Add New Task",
-      subtitle: "Create a task or reminder",
+      title: "Create Support Ticket",
+      subtitle: "Log a customer support issue",
       icon: <CheckSquare className="w-5 h-5" />,
       category: "action",
       action: () => {
-        console.log("Navigate to add task");
+        console.log("Navigate to add support ticket");
         onClose();
       },
-      keywords: ["task", "todo", "reminder", "new", "create"],
+      keywords: [
+        "ticket",
+        "support",
+        "issue",
+        "problem",
+        "task",
+        "todo",
+        "reminder",
+        "new",
+        "create",
+      ],
     },
     {
       id: "schedule-meeting",
-      title: "Schedule Meeting",
-      subtitle: "Book a meeting with customer",
+      title: "Schedule Site Survey",
+      subtitle: "Book technician for site visit",
       icon: <Calendar className="w-5 h-5" />,
       category: "action",
       action: () => {
-        console.log("Navigate to schedule meeting");
+        console.log("Navigate to schedule site survey");
         onClose();
       },
-      keywords: ["meeting", "schedule", "calendar", "appointment"],
+      keywords: [
+        "survey",
+        "site",
+        "technician",
+        "meeting",
+        "schedule",
+        "calendar",
+        "appointment",
+        "installation",
+      ],
     },
     {
       id: "send-email",
@@ -165,28 +192,28 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
 
     // Recent Items (mock data)
     {
-      id: "recent-acme",
-      title: "Acme Corporation",
+      id: "recent-rahul",
+      title: "Rahul Sharma - Mumbai Subscriber",
       subtitle: "Opened 2 hours ago",
       icon: <Clock className="w-5 h-5" />,
       category: "recent",
       action: () => {
-        console.log("Navigate to Acme Corporation");
+        console.log("Navigate to Rahul Sharma subscriber");
         onClose();
       },
-      keywords: ["acme", "recent"],
+      keywords: ["rahul", "sharma", "subscriber", "recent"],
     },
     {
-      id: "recent-techstart",
-      title: "TechStart India Ltd",
+      id: "recent-priya",
+      title: "Priya Kumar - Fiber 1Gbps",
       subtitle: "Opened yesterday",
       icon: <Clock className="w-5 h-5" />,
       category: "recent",
       action: () => {
-        console.log("Navigate to TechStart India");
+        console.log("Navigate to Priya Kumar subscriber");
         onClose();
       },
-      keywords: ["techstart", "recent"],
+      keywords: ["priya", "kumar", "fiber", "recent"],
     },
   ];
 

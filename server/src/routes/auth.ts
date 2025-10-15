@@ -1,46 +1,121 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import { User } from "../models/User";
+import { authLimiter, registrationLimiter } from "../middleware/rateLimiter";
+import { validateRegistration, validateLogin } from "../middleware/validators";
+import { checkValidationResult } from "../middleware/validateRequest";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
 // Register (for initial setup)
-router.post("/register", async (req, res) => {
-  try {
-    const { firstName, lastName, email, password, role } = req.body;
+router.post(
+  "/register",
+  registrationLimiter,
+  validateRegistration,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const { name, email, password, role } = req.body;
+
+    // Check if user already exists
     const existing = await User.findOne({ email });
-    if (existing)
-      return res.status(400).json({ message: "User already exists" });
+    if (existing) {
+      throw new AppError("User with this email already exists", 400);
+    }
 
-    const hash = await bcrypt.hash(password, 10);
-    const user = new User({ firstName, lastName, email, password: hash, role });
+    // Hash password
+    const hash = await bcrypt.hash(password, 12);
+
+    // Split name into firstName and lastName
+    const nameParts = name.trim().split(" ");
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(" ") || firstName;
+
+    // Create user
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password: hash,
+      role: role || "sales",
+    });
+
     await user.save();
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ error: "Registration failed" });
-  }
-});
 
-// Login
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: "Invalid credentials" });
-
+    // Generate token
+    const jwtSecret =
+      process.env.JWT_SECRET || "bharatnet-secret-key-change-in-production";
+    const jwtOptions: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRY || "7d") as any,
+    };
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET || "secret",
-      { expiresIn: "7d" }
+      jwtSecret,
+      jwtOptions
     );
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ error: "Login failed" });
-  }
-});
+
+    res.status(201).json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role,
+        },
+      },
+    });
+  })
+);
+
+// Login
+router.post(
+  "/login",
+  authLimiter,
+  validateLogin,
+  checkValidationResult,
+  asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    // Find user and include password field
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    // Verify password
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    // Generate token
+    const jwtSecret =
+      process.env.JWT_SECRET || "bharatnet-secret-key-change-in-production";
+    const jwtOptions: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRY || "7d") as any,
+    };
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      jwtSecret,
+      jwtOptions
+    );
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role,
+        },
+      },
+    });
+  })
+);
 
 export default router;

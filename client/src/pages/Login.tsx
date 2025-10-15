@@ -1,32 +1,53 @@
 import React, { useState } from "react";
 import { useAuthStore } from "../stores/authStore";
+import { login as apiLogin } from "../services/authService";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const login = useAuthStore((state) => state.login);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
-      // For demo purposes, create a mock user
-      const mockUser = {
-        id: "1",
-        firstName: "Anmol",
-        lastName: "Singhal",
-        email: email,
-        role: "admin",
+      // Call real API
+      const response = await apiLogin({ email, password });
+
+      // Store token in localStorage
+      localStorage.setItem("token", response.token);
+
+      // Parse user data from response
+      const userData = {
+        id: response.user.id,
+        firstName: response.user.name.split(" ")[0] || "",
+        lastName: response.user.name.split(" ").slice(1).join(" ") || "",
+        email: response.user.email,
+        role: response.user.role,
       };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Update auth store
+      login(userData, response.token);
 
-      login(mockUser, "mock-jwt-token");
-    } catch (error) {
+      // Show success message
+      toast.success(`Welcome back, ${userData.firstName}!`);
+
+      // Redirect to dashboard
+      navigate("/");
+    } catch (error: any) {
       console.error("Login failed:", error);
+      const errorMessage =
+        error.response?.data?.error?.message ||
+        "Login failed. Please check your credentials.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -82,6 +103,30 @@ const Login: React.FC = () => {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <button
               type="submit"
@@ -94,7 +139,7 @@ const Login: React.FC = () => {
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Demo Login: Use any email and password
+              Demo Credentials: admin@bharatnet.com / Admin@1234
             </p>
           </div>
         </form>

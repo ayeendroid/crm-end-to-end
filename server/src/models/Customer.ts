@@ -37,6 +37,36 @@ export interface ICustomer extends Document {
   totalValue: number;
   notes: string;
   customFields: Map<string, any>;
+
+  // ISP-Specific Fields
+  ispData?: {
+    plan?: {
+      type?: "Fiber" | "Broadband" | "Wireless";
+      speed?: string;
+      price?: number;
+      billingCycle?: "Monthly" | "Quarterly" | "Annual";
+      ottApps?: string[];
+      liveChannels?: number;
+    };
+    usage?: {
+      dataConsumed?: number;
+      averageSpeed?: number;
+      uptime?: number;
+      mostUsedOTT?: string[];
+      peakUsageHours?: string[];
+    };
+    customerSince?: Date;
+    lifetimeValue?: number;
+    churnRisk?: "Low" | "Medium" | "High";
+    npsScore?: number;
+    tickets?: number;
+    lastTicketDate?: Date;
+    satisfaction?: 1 | 2 | 3 | 4 | 5;
+    referredBy?: string;
+    nextBillingDate?: Date;
+    outstandingAmount?: number;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -138,6 +168,57 @@ const CustomerSchema = new Schema<ICustomer>(
       type: Map,
       of: Schema.Types.Mixed,
     },
+    // ISP-Specific Fields
+    ispData: {
+      plan: {
+        type: {
+          type: String,
+          enum: ["Fiber", "Broadband", "Wireless"],
+        },
+        speed: String,
+        price: Number,
+        billingCycle: {
+          type: String,
+          enum: ["Monthly", "Quarterly", "Annual"],
+        },
+        ottApps: [String],
+        liveChannels: Number,
+      },
+      usage: {
+        dataConsumed: Number,
+        averageSpeed: Number,
+        uptime: Number,
+        mostUsedOTT: [String],
+        peakUsageHours: [String],
+      },
+      customerSince: Date,
+      lifetimeValue: Number,
+      churnRisk: {
+        type: String,
+        enum: ["Low", "Medium", "High"],
+      },
+      npsScore: {
+        type: Number,
+        min: -100,
+        max: 100,
+      },
+      tickets: {
+        type: Number,
+        default: 0,
+      },
+      lastTicketDate: Date,
+      satisfaction: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+      referredBy: String,
+      nextBillingDate: Date,
+      outstandingAmount: {
+        type: Number,
+        default: 0,
+      },
+    },
   },
   {
     timestamps: true,
@@ -149,5 +230,10 @@ CustomerSchema.index({ assignedTo: 1, status: 1 });
 CustomerSchema.index({ company: 1 });
 CustomerSchema.index({ tags: 1 });
 CustomerSchema.index({ createdAt: -1 });
+// ISP-specific indexes
+CustomerSchema.index({ "ispData.churnRisk": 1 });
+CustomerSchema.index({ "ispData.plan.type": 1 });
+CustomerSchema.index({ "ispData.nextBillingDate": 1 });
+CustomerSchema.index({ "ispData.npsScore": 1 });
 
 export const Customer = mongoose.model<ICustomer>("Customer", CustomerSchema);

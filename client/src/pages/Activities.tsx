@@ -28,18 +28,25 @@ const Activities: React.FC = () => {
         ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ticket.subject.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = categoryFilter === "All" || ticket.category === categoryFilter;
-      const matchesStatus = statusFilter === "All" || ticket.status === statusFilter;
-      const matchesPriority = priorityFilter === "All" || ticket.priority === priorityFilter;
+      const matchesCategory =
+        categoryFilter === "All" || ticket.category === categoryFilter;
+      const matchesStatus =
+        statusFilter === "All" || ticket.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "All" || ticket.priority === priorityFilter;
 
-      return matchesSearch && matchesCategory && matchesStatus && matchesPriority;
+      return (
+        matchesSearch && matchesCategory && matchesStatus && matchesPriority
+      );
     });
   }, [searchQuery, categoryFilter, statusFilter, priorityFilter]);
 
   // Calculate stats
   const stats = useMemo(() => {
     const totalTickets = supportTickets.length;
-    const openTickets = supportTickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
+    const openTickets = supportTickets.filter(
+      (t) => t.status === "Open" || t.status === "In Progress"
+    ).length;
     const resolvedToday = supportTickets.filter((t) => {
       const today = new Date();
       const resolvedDate = new Date(t.resolvedDate || t.createdDate);
@@ -49,7 +56,8 @@ const Activities: React.FC = () => {
       );
     }).length;
     const avgResponseTime = Math.round(
-      supportTickets.reduce((sum, t) => sum + t.responseTime, 0) / supportTickets.length
+      supportTickets.reduce((sum, t) => sum + t.responseTime, 0) /
+        supportTickets.length
     );
 
     return {
@@ -147,7 +155,9 @@ const Activities: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Tickets</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalTickets}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.totalTickets}
+              </p>
             </div>
           </div>
         </div>
@@ -159,7 +169,9 @@ const Activities: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Open Tickets</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.openTickets}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.openTickets}
+              </p>
             </div>
           </div>
         </div>
@@ -170,8 +182,12 @@ const Activities: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Resolved Today</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.resolvedToday}</p>
+              <p className="text-sm font-medium text-gray-500">
+                Resolved Today
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.resolvedToday}
+              </p>
             </div>
           </div>
         </div>
@@ -182,8 +198,12 @@ const Activities: React.FC = () => {
               <Clock className="h-8 w-8 text-blue-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Avg Response Time</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.avgResponseTime}m</p>
+              <p className="text-sm font-medium text-gray-500">
+                Avg Response Time
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {stats.avgResponseTime}m
+              </p>
             </div>
           </div>
         </div>
@@ -301,28 +321,44 @@ const Activities: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{ticket.customerName}</div>
-                      <div className="text-sm text-gray-500">{ticket.location}</div>
+                      <div className="text-sm text-gray-900">
+                        {ticket.customerName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {ticket.location}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {getCategoryIcon(ticket.category)}
-                        <span className="text-sm text-gray-900">{ticket.category}</span>
+                        <span className="text-sm text-gray-900">
+                          {ticket.category}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`text-sm font-semibold ${getPriorityColor(ticket.priority)}`}>
+                      <span
+                        className={`text-sm font-semibold ${getPriorityColor(
+                          ticket.priority
+                        )}`}
+                      >
                         {ticket.priority}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ticket.status)}`}>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          ticket.status
+                        )}`}
+                      >
                         {getStatusIcon(ticket.status)}
                         {ticket.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{ticket.responseTime}m</div>
+                      <div className="text-sm text-gray-900">
+                        {ticket.responseTime}m
+                      </div>
                       {ticket.resolutionTime && (
                         <div className="text-xs text-gray-500">
                           Resolved in {ticket.resolutionTime}m
@@ -330,9 +366,13 @@ const Activities: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{ticket.assignedTo}</div>
+                      <div className="text-sm text-gray-900">
+                        {ticket.assignedTo}
+                      </div>
                       <div className="text-xs text-gray-500">
-                        {new Date(ticket.createdDate).toLocaleDateString("en-IN")}
+                        {new Date(ticket.createdDate).toLocaleDateString(
+                          "en-IN"
+                        )}
                       </div>
                     </td>
                   </tr>

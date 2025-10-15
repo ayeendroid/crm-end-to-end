@@ -5,23 +5,30 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Activity,
   Calendar,
   AlertTriangle,
   CheckCircle,
+  Signal,
   Minus,
 } from "lucide-react";
 import ActivityTimeline from "../components/ActivityTimeline/ActivityTimeline";
+import {
+  mockBharatNetCustomers,
+  getCustomerAnalytics,
+} from "../data/mockBharatNetData";
 
 const Dashboard: React.FC = () => {
-  // Enhanced stats with better data structure
+  // Get real analytics from BharatNet data
+  const analytics = getCustomerAnalytics(mockBharatNetCustomers);
+
+  // Enhanced stats with ISP-specific metrics
   const stats = [
     {
-      name: "Total Revenue",
-      value: "₹2.4L",
-      rawValue: 240000,
-      change: "+15.3%",
-      changeValue: "+₹28.2K",
+      name: "Monthly Revenue (MRR)",
+      value: `₹${(analytics.totalRevenue / 100000).toFixed(1)}L`,
+      rawValue: analytics.totalRevenue,
+      change: "+8.3%",
+      changeValue: "+₹35K",
       changeType: "positive" as const,
       icon: DollarSign,
       gradient: "from-emerald-500 to-green-600",
@@ -29,11 +36,11 @@ const Dashboard: React.FC = () => {
       iconBg: "bg-gradient-to-br from-emerald-500 to-green-600",
     },
     {
-      name: "Total Customers",
-      value: "1,247",
-      rawValue: 1247,
-      change: "+12%",
-      changeValue: "+134",
+      name: "Active Subscribers",
+      value: analytics.active.toLocaleString("en-IN"),
+      rawValue: analytics.active,
+      change: "+12.4%",
+      changeValue: "+52",
       changeType: "positive" as const,
       icon: Users,
       gradient: "from-blue-500 to-indigo-600",
@@ -41,25 +48,25 @@ const Dashboard: React.FC = () => {
       iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
     },
     {
-      name: "Active Deals",
-      value: "89",
-      rawValue: 89,
-      change: "+8.2%",
-      changeValue: "+7",
+      name: "Avg Uptime",
+      value: `${analytics.avgUptime}%`,
+      rawValue: parseFloat(analytics.avgUptime),
+      change: "+0.3%",
+      changeValue: "+0.3%",
       changeType: "positive" as const,
-      icon: TrendingUp,
+      icon: Signal,
       gradient: "from-purple-500 to-pink-600",
       bgGradient: "from-purple-50 to-pink-50",
       iconBg: "bg-gradient-to-br from-purple-500 to-pink-600",
     },
     {
-      name: "Win Rate",
-      value: "68%",
-      rawValue: 68,
-      change: "+5.1%",
-      changeValue: "+3.2%",
+      name: "Churn Rate",
+      value: "2.1%",
+      rawValue: 2.1,
+      change: "-0.5%",
+      changeValue: "-0.5%",
       changeType: "positive" as const,
-      icon: Activity,
+      icon: TrendingDown,
       gradient: "from-indigo-500 to-blue-600",
       bgGradient: "from-indigo-50 to-blue-50",
       iconBg: "bg-gradient-to-br from-indigo-500 to-blue-600",
@@ -69,13 +76,13 @@ const Dashboard: React.FC = () => {
   const alerts = [
     {
       type: "warning",
-      message: "No secondary data backup is configured",
-      action: "Configure",
+      message: `${analytics.churnRisk.high} customers at high churn risk - immediate action needed`,
+      action: "View List",
     },
     {
-      type: "warning",
-      message: "No secondary nat logs backup is configured",
-      action: "Configure",
+      type: "info",
+      message: `Average NPS Score: ${analytics.avgNPS}/10 - Customer satisfaction is strong`,
+      action: "Details",
     },
   ];
 
@@ -85,10 +92,10 @@ const Dashboard: React.FC = () => {
       <div className="md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-            Dashboard
+            BharatNet Dashboard
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Welcome back, Anmol! Here's what's happening with your CRM today.
+            Welcome back, Anmol! Here's what's happening with your ISP today.
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
@@ -223,40 +230,44 @@ const Dashboard: React.FC = () => {
             <div className="space-y-3">
               <button className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <UserPlus className="mr-2 h-4 w-4" />
-                Add New Customer
+                Add New Subscriber
               </button>
               <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <DollarSign className="mr-2 h-4 w-4" />
-                Create New Deal
+                Schedule Site Survey
               </button>
               <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <Calendar className="mr-2 h-4 w-4" />
-                Schedule Activity
+                Create Support Ticket
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* System Status */}
+      {/* Network Status */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-            System Status
+            Network Status
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-sm text-gray-600">Database: Connected</span>
+              <span className="text-sm text-gray-600">
+                Network: Operational (99.2% uptime)
+              </span>
             </div>
             <div className="flex items-center">
               <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-sm text-gray-600">API: Operational</span>
+              <span className="text-sm text-gray-600">
+                OTT Services: All Active
+              </span>
             </div>
             <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
+              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
               <span className="text-sm text-gray-600">
-                Backup: Needs Configuration
+                Customer Portal: Online
               </span>
             </div>
           </div>
