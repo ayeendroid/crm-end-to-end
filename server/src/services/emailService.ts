@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer';
-import { logger } from '../config/logger';
+import nodemailer from "nodemailer";
+import logger from "../config/logger";
 
 // Email configuration interface
 interface EmailConfig {
@@ -33,12 +33,12 @@ class EmailService {
   constructor() {
     // Get configuration from environment variables
     this.config = {
-      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.EMAIL_PORT || "587"),
+      secure: process.env.EMAIL_SECURE === "true",
       auth: {
-        user: process.env.EMAIL_USER || '',
-        pass: process.env.EMAIL_PASS || '',
+        user: process.env.EMAIL_USER || "",
+        pass: process.env.EMAIL_PASS || "",
       },
     };
 
@@ -49,46 +49,67 @@ class EmailService {
   private initializeTransporter(): void {
     try {
       this.transporter = nodemailer.createTransport(this.config);
-      logger.info('Email transporter initialized successfully');
+      logger.info("Email transporter initialized successfully");
     } catch (error) {
-      logger.error('Failed to initialize email transporter:', error);
+      logger.error("Failed to initialize email transporter:", error);
     }
   }
 
   // Test email connection
   async testConnection(): Promise<boolean> {
     if (!this.transporter) {
-      logger.error('Email transporter not initialized');
+      logger.error("Email transporter not initialized");
       return false;
     }
 
     try {
       await this.transporter.verify();
-      logger.info('Email service connection verified');
+      logger.info("Email service connection verified");
       return true;
     } catch (error) {
-      logger.error('Email service connection failed:', error);
+      logger.error("Email service connection failed:", error);
       return false;
     }
   }
 
   // Send a single email
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    // In development mode without credentials, simulate email sending
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const hasCredentials =
+      this.config.auth.user &&
+      this.config.auth.pass &&
+      this.config.auth.user !== "your-email@gmail.com";
+
+    if (isDevelopment && !hasCredentials) {
+      logger.info("📧 DEVELOPMENT MODE: Simulating email send");
+      logger.info(
+        `To: ${Array.isArray(options.to) ? options.to.join(", ") : options.to}`
+      );
+      logger.info(`Subject: ${options.subject}`);
+      logger.info(
+        "Email would be sent in production with proper SMTP credentials"
+      );
+      return true; // Return success in dev mode
+    }
+
     if (!this.transporter) {
-      logger.error('Email transporter not initialized');
+      logger.error("Email transporter not initialized");
       return false;
     }
 
-    // Validate email configuration
-    if (!this.config.auth.user || !this.config.auth.pass) {
-      logger.warn('Email credentials not configured. Skipping email send.');
+    // Validate email configuration for production
+    if (!hasCredentials) {
+      logger.warn("Email credentials not configured. Skipping email send.");
       return false;
     }
 
     try {
       const mailOptions = {
-        from: `"${process.env.EMAIL_FROM_NAME || 'BharatNet CRM'}" <${this.config.auth.user}>`,
-        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+        from: `"${process.env.EMAIL_FROM_NAME || "BharatNet CRM"}" <${
+          this.config.auth.user
+        }>`,
+        to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
         subject: options.subject,
         html: options.html,
         text: options.text,
@@ -99,14 +120,14 @@ class EmailService {
       logger.info(`Email sent successfully: ${info.messageId}`);
       return true;
     } catch (error) {
-      logger.error('Failed to send email:', error);
+      logger.error("Failed to send email:", error);
       return false;
     }
   }
 
   // Send welcome email to new customer
   async sendWelcomeEmail(to: string, customerName: string): Promise<boolean> {
-    const subject = 'Welcome to BharatNet CRM!';
+    const subject = "Welcome to BharatNet CRM!";
     const html = `
       <!DOCTYPE html>
       <html>
@@ -137,7 +158,9 @@ class EmailService {
               <li>24/7 assistance when you need it</li>
             </ul>
             <p style="text-align: center;">
-              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="button">Visit Dashboard</a>
+              <a href="${
+                process.env.FRONTEND_URL || "http://localhost:5173"
+              }" class="button">Visit Dashboard</a>
             </p>
             <p>Best regards,<br><strong>The BharatNet CRM Team</strong></p>
           </div>
@@ -235,11 +258,15 @@ class EmailService {
               </div>
               <div class="invoice-row">
                 <span>Amount Due:</span>
-                <span class="invoice-total">₹${amount.toLocaleString('en-IN')}</span>
+                <span class="invoice-total">₹${amount.toLocaleString(
+                  "en-IN"
+                )}</span>
               </div>
               <div class="invoice-row">
                 <span>Due Date:</span>
-                <strong>${new Date(dueDate).toLocaleDateString('en-IN')}</strong>
+                <strong>${new Date(dueDate).toLocaleDateString(
+                  "en-IN"
+                )}</strong>
               </div>
             </div>
             <p>Please make the payment by the due date to avoid any service interruption.</p>

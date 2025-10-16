@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 // Email types
 export interface Email {
@@ -8,8 +8,8 @@ export interface Email {
   subject: string;
   html: string;
   text?: string;
-  type: 'welcome' | 'followup' | 'invoice' | 'campaign' | 'custom';
-  status: 'pending' | 'sent' | 'failed' | 'bounced' | 'opened' | 'clicked';
+  type: "welcome" | "followup" | "invoice" | "campaign" | "custom";
+  status: "pending" | "sent" | "failed" | "bounced" | "opened" | "clicked";
   customerId?: string;
   leadId?: string;
   dealId?: string;
@@ -54,19 +54,19 @@ export interface EmailHistoryResponse {
 
 // Test email connection
 export const testEmailConnection = async () => {
-  const response = await api.get('/emails/test-connection');
+  const response = await api.get("/emails/test-connection");
   return response.data;
 };
 
 // Send a custom email
 export const sendEmail = async (data: SendEmailData) => {
-  const response = await api.post('/emails/send', data);
+  const response = await api.post("/emails/send", data);
   return response.data;
 };
 
 // Send welcome email to customer
 export const sendWelcomeEmail = async (customerId: string) => {
-  const response = await api.post('/emails/send-welcome', { customerId });
+  const response = await api.post("/emails/send-welcome", { customerId });
   return response.data;
 };
 
@@ -77,13 +77,13 @@ export const sendFollowUpEmail = async (data: {
   subject: string;
   message: string;
 }) => {
-  const response = await api.post('/emails/send-followup', data);
+  const response = await api.post("/emails/send-followup", data);
   return response.data;
 };
 
 // Send bulk emails
 export const sendBulkEmails = async (data: SendBulkEmailData) => {
-  const response = await api.post('/emails/send-bulk', data);
+  const response = await api.post("/emails/send-bulk", data);
   return response.data;
 };
 
@@ -95,7 +95,7 @@ export const getEmailHistory = async (params: {
   page?: number;
   limit?: number;
 }): Promise<EmailHistoryResponse> => {
-  const response = await api.get('/emails/history', { params });
+  const response = await api.get("/emails/history", { params });
   return response.data;
 };
 

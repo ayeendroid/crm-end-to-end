@@ -1,22 +1,22 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
 // Email status enum
 export enum EmailStatus {
-  PENDING = 'pending',
-  SENT = 'sent',
-  FAILED = 'failed',
-  BOUNCED = 'bounced',
-  OPENED = 'opened',
-  CLICKED = 'clicked',
+  PENDING = "pending",
+  SENT = "sent",
+  FAILED = "failed",
+  BOUNCED = "bounced",
+  OPENED = "opened",
+  CLICKED = "clicked",
 }
 
 // Email type enum
 export enum EmailType {
-  WELCOME = 'welcome',
-  FOLLOWUP = 'followup',
-  INVOICE = 'invoice',
-  CAMPAIGN = 'campaign',
-  CUSTOM = 'custom',
+  WELCOME = "welcome",
+  FOLLOWUP = "followup",
+  INVOICE = "invoice",
+  CAMPAIGN = "campaign",
+  CUSTOM = "custom",
 }
 
 // Email interface
@@ -86,19 +86,19 @@ const EmailSchema = new Schema<IEmail>(
     },
     customerId: {
       type: Schema.Types.ObjectId,
-      ref: 'Customer',
+      ref: "Customer",
     },
     leadId: {
       type: Schema.Types.ObjectId,
-      ref: 'Lead',
+      ref: "Lead",
     },
     dealId: {
       type: Schema.Types.ObjectId,
-      ref: 'Deal',
+      ref: "Deal",
     },
     sentBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     sentAt: {
@@ -139,4 +139,4 @@ EmailSchema.index({ status: 1, createdAt: -1 });
 EmailSchema.index({ type: 1, createdAt: -1 });
 
 // Export model
-export const Email = mongoose.model<IEmail>('Email', EmailSchema);
+export const Email = mongoose.model<IEmail>("Email", EmailSchema);

@@ -27,12 +27,37 @@ router.get(
     const filters: any = {};
     if (req.query.status) filters.status = req.query.status;
     if (req.query.source) filters.source = req.query.source;
+
     if (req.query.search) {
+      const searchTerm = req.query.search as string;
+
+      // Sanitize input to prevent regex injection
+      const escapeRegex = (str: string) =>
+        str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      const trimmedSearch = searchTerm.trim();
+      const safeTerm = escapeRegex(trimmedSearch);
+
+      // Smart search: Matches across individual fields AND concatenated fullName
       filters.$or = [
-        { firstName: { $regex: req.query.search, $options: "i" } },
-        { lastName: { $regex: req.query.search, $options: "i" } },
-        { email: { $regex: req.query.search, $options: "i" } },
-        { company: { $regex: req.query.search, $options: "i" } },
+        // Search in firstName
+        { firstName: { $regex: safeTerm, $options: "i" } },
+        // Search in lastName
+        { lastName: { $regex: safeTerm, $options: "i" } },
+        // Search in email
+        { email: { $regex: safeTerm, $options: "i" } },
+        // Search in company
+        { company: { $regex: safeTerm, $options: "i" } },
+        // Search in concatenated full name using $expr
+        {
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$firstName", " ", "$lastName"] },
+              regex: safeTerm,
+              options: "i",
+            },
+          },
+        },
       ];
     }
 
@@ -41,7 +66,8 @@ router.get(
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
-        .populate("assignedTo", "firstName lastName email"),
+        .populate("assignedTo", "firstName lastName email")
+        .lean(),
       Customer.countDocuments(filters),
     ]);
 

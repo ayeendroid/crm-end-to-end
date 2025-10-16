@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { X, Send, Loader2, Mail } from 'lucide-react';
-import emailService, { SendEmailData } from '../../services/emailService';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { X, Send, Loader2, Mail } from "lucide-react";
+import emailService, { SendEmailData } from "../../services/emailService";
+import toast from "react-hot-toast";
 
 interface EmailComposerProps {
   isOpen: boolean;
@@ -16,22 +16,22 @@ interface EmailComposerProps {
 export const EmailComposer = ({
   isOpen,
   onClose,
-  defaultTo = '',
+  defaultTo = "",
   customerId,
   leadId,
   dealId,
   onSuccess,
 }: EmailComposerProps) => {
   const [to, setTo] = useState(defaultTo);
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!to || !subject || !message) {
-      toast.error('Please fill in all fields');
+      toast.error("Please fill in all fields");
       return;
     }
 
@@ -43,7 +43,7 @@ export const EmailComposer = ({
         subject,
         message: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            ${message.replace(/\n/g, '<br>')}
+            ${message.replace(/\n/g, "<br>")}
             <br><br>
             <p>Best regards,<br><strong>The BharatNet CRM Team</strong></p>
           </div>
@@ -51,22 +51,22 @@ export const EmailComposer = ({
         customerId,
         leadId,
         dealId,
-        type: 'custom',
+        type: "custom",
       };
 
       await emailService.sendEmail(emailData);
-      toast.success('Email sent successfully!');
-      
+      toast.success("Email sent successfully!");
+
       // Reset form
-      setTo('');
-      setSubject('');
-      setMessage('');
-      
+      setTo("");
+      setSubject("");
+      setMessage("");
+
       onSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Failed to send email:', error);
-      toast.error('Failed to send email. Please try again.');
+      console.error("Failed to send email:", error);
+      toast.error("Failed to send email. Please try again.");
     } finally {
       setSending(false);
     }

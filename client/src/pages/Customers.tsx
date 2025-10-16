@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import {
   Plus,
@@ -12,6 +13,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  Send,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -21,8 +23,10 @@ import {
 } from "../services/customerService";
 import CreateCustomerModal from "../components/Customers/CreateCustomerModal";
 import EditCustomerModal from "../components/Customers/EditCustomerModal";
+import { EmailComposer } from "../components/Email";
 
 const CustomersNew: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // State
@@ -34,6 +38,8 @@ const CustomersNew: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showEmailComposer, setShowEmailComposer] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState<string>("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -133,6 +139,20 @@ const CustomersNew: React.FC = () => {
             setSelectedCustomer(null);
           }}
           customer={selectedCustomer}
+        />
+      )}
+
+      {/* Email Composer Modal */}
+      {showEmailComposer && selectedCustomer && (
+        <EmailComposer
+          isOpen={showEmailComposer}
+          defaultTo={emailRecipient}
+          customerId={selectedCustomer._id}
+          onClose={() => {
+            setShowEmailComposer(false);
+            setEmailRecipient("");
+            setSelectedCustomer(null);
+          }}
         />
       )}
 
@@ -344,7 +364,12 @@ const CustomersNew: React.FC = () => {
                     <tr key={customer._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div
+                            className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600"
+                            onClick={() =>
+                              navigate(`/customers/${customer._id}`)
+                            }
+                          >
                             {customer.firstName} {customer.lastName}
                           </div>
                           <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
@@ -405,6 +430,17 @@ const CustomersNew: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => {
+                            setEmailRecipient(customer.email);
+                            setSelectedCustomer(customer);
+                            setShowEmailComposer(true);
+                          }}
+                          className="text-purple-600 hover:text-purple-900 mr-3"
+                          title="Send Email"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
                         <button
                           onClick={() => {
                             setSelectedCustomer(customer);

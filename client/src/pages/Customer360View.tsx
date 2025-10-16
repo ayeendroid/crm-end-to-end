@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useQuery } from "react-query";
 import {
   User,
   Mail,
@@ -11,7 +13,6 @@ import {
   Activity,
   FileText,
   Clock,
-  CheckCircle,
   Star,
   Video,
   Target,
@@ -23,7 +24,10 @@ import {
   Share2,
   Tag,
   Zap,
+  Send,
 } from "lucide-react";
+import { EmailComposer, EmailHistory } from "../components/Email";
+import { getCustomer } from "../services/customerService";
 import {
   LineChart,
   Line,
@@ -37,61 +41,41 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-interface CustomerDetail {
-  id: string;
-  name: string;
-  company: string;
-  email: string;
-  phone: string;
-  location: string;
-  avatar: string;
-  status: "active" | "inactive" | "at-risk";
-  tier: "premium" | "standard" | "basic";
-  joinDate: string;
-  lastActivity: string;
-  totalRevenue: number;
-  lifetimeValue: number;
-  healthScore: number;
-  aiInsights: {
-    churnRisk: number;
-    upsellPotential: number;
-    engagementLevel: string;
-    nextBestAction: string;
-    recommendations: string[];
-  };
-}
-
 const Customer360View: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEmailComposerOpen, setIsEmailComposerOpen] = useState(false);
 
-  // Mock customer data
-  const customer: CustomerDetail = {
-    id: "1",
-    name: "Rajesh Kumar",
-    company: "TechCorp India Pvt Ltd",
-    email: "rajesh.kumar@techcorp.in",
-    phone: "+91 98765 43210",
-    location: "Mumbai, Maharashtra, India",
-    avatar: "RK",
-    status: "active",
-    tier: "premium",
-    joinDate: "2022-03-15",
-    lastActivity: "2024-05-20T14:30:00",
-    totalRevenue: 850000,
-    lifetimeValue: 1250000,
-    healthScore: 85,
-    aiInsights: {
-      churnRisk: 15,
-      upsellPotential: 78,
-      engagementLevel: "High",
-      nextBestAction: "Schedule quarterly business review",
-      recommendations: [
-        "Offer premium support upgrade",
-        "Introduce new analytics features",
-        "Schedule training session for new team members",
-      ],
-    },
-  };
+  // Fetch real customer data from API
+  const {
+    data: customer,
+    isLoading,
+    error,
+  } = useQuery(["customer", id], () => getCustomer(id!), {
+    enabled: !!id,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading customer details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !customer) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">Failed to load customer details</p>
+          <p className="text-gray-600 mt-2">Please try again later</p>
+        </div>
+      </div>
+    );
+  }
 
   // Revenue trend data
   const revenueData = [
@@ -229,15 +213,6 @@ const Customer360View: React.FC = () => {
     return colors[status as keyof typeof colors] || colors.active;
   };
 
-  const getTierColor = (tier: string) => {
-    const colors = {
-      premium: "bg-purple-100 text-purple-800 border-purple-200",
-      standard: "bg-blue-100 text-blue-800 border-blue-200",
-      basic: "bg-gray-100 text-gray-800 border-gray-200",
-    };
-    return colors[tier as keyof typeof colors] || colors.standard;
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -279,7 +254,9 @@ const Customer360View: React.FC = () => {
             {/* Avatar */}
             <div className="flex-shrink-0">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                {customer.avatar}
+                {`${customer.firstName.charAt(0)}${customer.lastName.charAt(
+                  0
+                )}`.toUpperCase()}
               </div>
             </div>
 
@@ -288,14 +265,21 @@ const Customer360View: React.FC = () => {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                    {customer.name}
+                    {customer.firstName} {customer.lastName}
                   </h1>
                   <p className="text-gray-600 flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
-                    {customer.company}
+                    {customer.company || "No company"}
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsEmailComposerOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-sm"
+                  >
+                    <Send className="h-4 w-4" />
+                    <span className="hidden sm:inline">Send Email</span>
+                  </button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <Edit className="h-5 w-5 text-gray-600" />
                   </button>
@@ -329,35 +313,44 @@ const Customer360View: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <MapPin className="h-4 w-4" />
-                  <span>{customer.location}</span>
+                  <span>
+                    {customer.address?.city && customer.address?.state
+                      ? `${customer.address.city}, ${customer.address.state}`
+                      : customer.address?.city ||
+                        customer.address?.country ||
+                        "Location not specified"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <span>Customer since {formatDate(customer.joinDate)}</span>
+                  <span>
+                    Customer since{" "}
+                    {customer.createdAt
+                      ? formatDate(customer.createdAt.toString())
+                      : "N/A"}
+                  </span>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                    customer.status
+                    customer.status || "active"
                   )}`}
                 >
-                  {customer.status.charAt(0).toUpperCase() +
-                    customer.status.slice(1)}
+                  {(customer.status || "active").charAt(0).toUpperCase() +
+                    (customer.status || "active").slice(1)}
                 </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium border ${getTierColor(
-                    customer.tier
-                  )}`}
-                >
-                  {customer.tier.charAt(0).toUpperCase() +
-                    customer.tier.slice(1)}{" "}
-                  Tier
+                <span className="px-3 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">
+                  {customer.jobTitle || "Customer"}{" "}
+                  {customer.industry ? `• ${customer.industry}` : ""}
                 </span>
-                <span className="px-3 py-1 rounded-full text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200">
-                  Last active: {formatTime(customer.lastActivity)}
-                </span>
+                {customer.lastContactDate && (
+                  <span className="px-3 py-1 rounded-full text-xs font-medium border bg-blue-50 text-blue-700 border-blue-200">
+                    Last contact:{" "}
+                    {formatTime(customer.lastContactDate.toString())}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -384,86 +377,63 @@ const Customer360View: React.FC = () => {
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl p-6 text-white">
         <div className="flex items-center gap-3 mb-4">
           <Sparkles className="h-6 w-6" />
-          <h2 className="text-xl font-bold">AI-Powered Insights</h2>
+          <h2 className="text-xl font-bold">Customer Insights</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div className="text-xs uppercase tracking-wide mb-1 text-white/80">
-              Health Score
+              Total Value
             </div>
             <div className="text-3xl font-bold mb-1">
-              {customer.healthScore}
+              {formatCurrency(customer.totalValue || 0)}
             </div>
             <div className="text-xs text-white/80">
-              {customer.healthScore >= 80
-                ? "Excellent"
-                : customer.healthScore >= 60
-                ? "Good"
-                : "Needs Attention"}
+              {customer.totalValue && customer.totalValue > 100000
+                ? "High Value"
+                : customer.totalValue && customer.totalValue > 50000
+                ? "Medium Value"
+                : "Standard"}
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div className="text-xs uppercase tracking-wide mb-1 text-white/80">
-              Churn Risk
+              Source
             </div>
-            <div className="text-3xl font-bold mb-1">
-              {customer.aiInsights.churnRisk}%
+            <div className="text-2xl font-bold mb-1">
+              {customer.source || "Direct"}
             </div>
-            <div className="text-xs text-white/80">
-              {customer.aiInsights.churnRisk < 30
-                ? "Low Risk"
-                : customer.aiInsights.churnRisk < 60
-                ? "Medium Risk"
-                : "High Risk"}
-            </div>
+            <div className="text-xs text-white/80">Lead Source</div>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div className="text-xs uppercase tracking-wide mb-1 text-white/80">
-              Upsell Potential
+              Tags
             </div>
-            <div className="text-3xl font-bold mb-1">
-              {customer.aiInsights.upsellPotential}%
+            <div className="text-2xl font-bold mb-1">
+              {customer.tags?.length || 0}
             </div>
             <div className="text-xs text-white/80">
-              {customer.aiInsights.upsellPotential >= 70
-                ? "High Potential"
-                : "Moderate Potential"}
+              {customer.tags?.length ? customer.tags.join(", ") : "No tags"}
             </div>
-          </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-            <div className="text-xs uppercase tracking-wide mb-1 text-white/80">
-              Engagement
-            </div>
-            <div className="text-3xl font-bold mb-1">
-              {customer.aiInsights.engagementLevel}
-            </div>
-            <div className="text-xs text-white/80">Activity Level</div>
           </div>
         </div>
         <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="h-5 w-5" />
-            <span className="font-semibold">Next Best Action</span>
+            <span className="font-semibold">Next Steps</span>
           </div>
           <p className="text-white/90 mb-3">
-            {customer.aiInsights.nextBestAction}
+            {customer.nextFollowUp
+              ? `Follow up scheduled for ${formatDate(
+                  customer.nextFollowUp.toString()
+                )}`
+              : "No follow-up scheduled"}
           </p>
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-white/80">
-              AI Recommendations:
-            </p>
-            <ul className="space-y-1">
-              {customer.aiInsights.recommendations.map((rec, index) => (
-                <li
-                  key={index}
-                  className="text-sm text-white/90 flex items-center gap-2"
-                >
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                  {rec}
-                </li>
-              ))}
-            </ul>
-          </div>
+          {customer.notes && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-white/80">Notes:</p>
+              <p className="text-sm text-white/90">{customer.notes}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -476,9 +446,9 @@ const Customer360View: React.FC = () => {
             </div>
             <TrendingUp className="h-5 w-5 text-green-600" />
           </div>
-          <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+          <p className="text-sm text-gray-600 mb-1">Total Value</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(customer.totalRevenue)}
+            {formatCurrency(customer.totalValue || 0)}
           </p>
         </div>
 
@@ -488,9 +458,9 @@ const Customer360View: React.FC = () => {
               <Star className="h-6 w-6 text-purple-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Lifetime Value</p>
+          <p className="text-sm text-gray-600 mb-1">Estimated LTV</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(customer.lifetimeValue)}
+            {formatCurrency((customer.totalValue || 0) * 1.5)}
           </p>
         </div>
 
@@ -500,8 +470,10 @@ const Customer360View: React.FC = () => {
               <Target className="h-6 w-6 text-blue-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Active Deals</p>
-          <p className="text-2xl font-bold text-gray-900">{deals.length}</p>
+          <p className="text-sm text-gray-600 mb-1">Status</p>
+          <p className="text-2xl font-bold text-gray-900 capitalize">
+            {customer.status || "Active"}
+          </p>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -510,9 +482,9 @@ const Customer360View: React.FC = () => {
               <Activity className="h-6 w-6 text-orange-600" />
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-1">Recent Activities</p>
+          <p className="text-sm text-gray-600 mb-1">Industry</p>
           <p className="text-2xl font-bold text-gray-900">
-            {recentActivities.length}
+            {customer.industry || "N/A"}
           </p>
         </div>
       </div>
@@ -521,19 +493,21 @@ const Customer360View: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="border-b border-gray-200">
           <div className="flex overflow-x-auto">
-            {["overview", "activities", "deals", "documents"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+            {["overview", "activities", "deals", "emails", "documents"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
+                    activeTab === tab
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              )
+            )}
           </div>
         </div>
 
@@ -695,6 +669,13 @@ const Customer360View: React.FC = () => {
             </div>
           )}
 
+          {/* Email History Tab */}
+          {activeTab === "emails" && (
+            <div>
+              <EmailHistory customerId={customer._id} />
+            </div>
+          )}
+
           {/* Documents Tab */}
           {activeTab === "documents" && (
             <div className="space-y-3">
@@ -732,6 +713,16 @@ const Customer360View: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Email Composer Modal */}
+      {isEmailComposerOpen && (
+        <EmailComposer
+          isOpen={isEmailComposerOpen}
+          defaultTo={customer.email}
+          customerId={customer._id}
+          onClose={() => setIsEmailComposerOpen(false)}
+        />
+      )}
     </div>
   );
 };

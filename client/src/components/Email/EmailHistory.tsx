@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Mail, Clock, CheckCircle, XCircle, Eye, MousePointerClick } from 'lucide-react';
-import emailService, { Email } from '../../services/emailService';
-import { formatDistanceToNow } from 'date-fns';
+import { useEffect, useState } from "react";
+import {
+  Mail,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye,
+  MousePointerClick,
+} from "lucide-react";
+import emailService, { Email } from "../../services/emailService";
+import { formatDistanceToNow } from "date-fns";
 
 interface EmailHistoryProps {
   customerId?: string;
@@ -9,7 +16,11 @@ interface EmailHistoryProps {
   dealId?: string;
 }
 
-export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) => {
+export const EmailHistory = ({
+  customerId,
+  leadId,
+  dealId,
+}: EmailHistoryProps) => {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
@@ -29,7 +40,7 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
       });
       setEmails(data.emails);
     } catch (error) {
-      console.error('Failed to fetch email history:', error);
+      console.error("Failed to fetch email history:", error);
     } finally {
       setLoading(false);
     }
@@ -37,13 +48,13 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'sent':
+      case "sent":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'opened':
+      case "opened":
         return <Eye className="h-5 w-5 text-blue-500" />;
-      case 'clicked':
+      case "clicked":
         return <MousePointerClick className="h-5 w-5 text-purple-500" />;
-      case 'failed':
+      case "failed":
         return <XCircle className="h-5 w-5 text-red-500" />;
       default:
         return <Clock className="h-5 w-5 text-gray-500" />;
@@ -56,11 +67,11 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      welcome: 'bg-green-100 text-green-800',
-      followup: 'bg-blue-100 text-blue-800',
-      invoice: 'bg-yellow-100 text-yellow-800',
-      campaign: 'bg-purple-100 text-purple-800',
-      custom: 'bg-gray-100 text-gray-800',
+      welcome: "bg-green-100 text-green-800",
+      followup: "bg-blue-100 text-blue-800",
+      invoice: "bg-yellow-100 text-yellow-800",
+      campaign: "bg-purple-100 text-purple-800",
+      custom: "bg-gray-100 text-gray-800",
     };
     return colors[type] || colors.custom;
   };
@@ -77,7 +88,9 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
     return (
       <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
         <Mail className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No emails yet</h3>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">
+          No emails yet
+        </h3>
         <p className="mt-1 text-sm text-gray-500">
           Send your first email to this contact.
         </p>
@@ -110,13 +123,16 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  To: {email.to.join(', ')}
+                  To: {email.to.join(", ")}
                 </p>
                 <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
                   <span>
-                    {formatDistanceToNow(new Date(email.sentAt || email.createdAt), {
-                      addSuffix: true,
-                    })}
+                    {formatDistanceToNow(
+                      new Date(email.sentAt || email.createdAt),
+                      {
+                        addSuffix: true,
+                      }
+                    )}
                   </span>
                   <span>•</span>
                   <span>{getStatusText(email.status)}</span>
@@ -124,7 +140,10 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
                     <>
                       <span>•</span>
                       <span className="text-blue-600">
-                        Opened {formatDistanceToNow(new Date(email.openedAt), { addSuffix: true })}
+                        Opened{" "}
+                        {formatDistanceToNow(new Date(email.openedAt), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </>
                   )}
@@ -149,7 +168,7 @@ export const EmailHistory = ({ customerId, leadId, dealId }: EmailHistoryProps) 
                   {selectedEmail.subject}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  To: {selectedEmail.to.join(', ')}
+                  To: {selectedEmail.to.join(", ")}
                 </p>
               </div>
               <div className="p-6">

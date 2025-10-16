@@ -225,15 +225,47 @@ const CustomerSchema = new Schema<ICustomer>(
   }
 );
 
-CustomerSchema.index({ email: 1 });
-CustomerSchema.index({ assignedTo: 1, status: 1 });
+// Indexes for performance
+// TEXT INDEX for multi-word search with weighted relevance
+CustomerSchema.index(
+  {
+    firstName: "text",
+    lastName: "text",
+    email: "text",
+    company: "text",
+  },
+  {
+    weights: {
+      firstName: 10,
+      lastName: 10,
+      email: 5,
+      company: 3,
+    },
+    name: "customer_text_search",
+  }
+);
+
+// Individual field indexes for single-word prefix matching
+CustomerSchema.index({ firstName: 1 });
+CustomerSchema.index({ lastName: 1 });
+CustomerSchema.index({ email: 1 }, { unique: true, sparse: true }); // Unique but allows nulls
 CustomerSchema.index({ company: 1 });
+
+// Compound indexes following ESR (Equality-Sort-Range) rule
+CustomerSchema.index({ status: 1, createdAt: -1 });
+CustomerSchema.index({ source: 1, createdAt: -1 });
+CustomerSchema.index({ assignedTo: 1, status: 1, createdAt: -1 });
+CustomerSchema.index({ status: 1, source: 1, createdAt: -1 });
+
+// Other useful indexes
 CustomerSchema.index({ tags: 1 });
 CustomerSchema.index({ createdAt: -1 });
-// ISP-specific indexes
+
+// ISP-specific indexes for analytics
 CustomerSchema.index({ "ispData.churnRisk": 1 });
 CustomerSchema.index({ "ispData.plan.type": 1 });
 CustomerSchema.index({ "ispData.nextBillingDate": 1 });
 CustomerSchema.index({ "ispData.npsScore": 1 });
+CustomerSchema.index({ "ispData.lifetimeValue": -1 }); // Descending for top customers
 
 export const Customer = mongoose.model<ICustomer>("Customer", CustomerSchema);
