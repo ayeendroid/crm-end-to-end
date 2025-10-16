@@ -14,6 +14,7 @@ import tasksRoutes from "./routes/tasks";
 import usersRoutes from "./routes/users";
 import analyticsRoutes from "./routes/analytics";
 import reportsRoutes from "./routes/reports";
+import emailRoutes from "./routes/emails";
 
 // Import middleware
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -98,6 +99,7 @@ app.use("/api/tasks", tasksRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/emails", emailRoutes);
 
 // 404 handler - must be after all routes
 app.use(notFoundHandler);
