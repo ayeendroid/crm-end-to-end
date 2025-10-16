@@ -9,6 +9,7 @@
 **BharatNet CRM** is a modern Customer Relationship Management system built to manage ISP customers, leads, deals, and business analytics.
 
 ### Tech Stack
+
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + TypeScript
 - **Database**: MongoDB with Mongoose
@@ -17,6 +18,7 @@
 - **State Management**: React Query
 
 ### Current Version
+
 **v2.0** (Released: October 16, 2025)
 
 ---
@@ -77,10 +79,12 @@ cd ..
 ### Verify Installation
 
 Open your browser:
+
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3000/api/health
 
 You should see:
+
 - ✅ Frontend: Login page
 - ✅ Backend: `{"status":"healthy","message":"Server is running"}`
 
@@ -100,6 +104,7 @@ You should see:
 ### Install MongoDB
 
 **Option 1: Windows Service (Recommended)**
+
 1. Download from: https://www.mongodb.com/try/download/community
 2. Choose **Windows MSI**
 3. During installation:
@@ -108,6 +113,7 @@ You should see:
 4. Verify: `Get-Service MongoDB`
 
 **Option 2: Manual Installation**
+
 ```powershell
 # Download and extract MongoDB
 # Create data directory
@@ -149,7 +155,8 @@ RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```
 
-**Important**: 
+**Important**:
+
 - Change `JWT_SECRET` in production to a long random string
 - Never commit `.env` file to git (already in .gitignore)
 
@@ -240,16 +247,19 @@ npm run dev
 ### Making Changes
 
 1. **Create a feature branch**
+
 ```powershell
 git checkout -b feature/your-feature-name
 ```
 
 2. **Make your changes**
+
    - Edit files in `client/src/` for frontend
    - Edit files in `server/src/` for backend
    - Hot reload is enabled (changes reflect automatically)
 
 3. **Test your changes**
+
 ```powershell
 # Run backend tests
 cd server
@@ -263,12 +273,14 @@ npm test
 ```
 
 4. **Commit your changes**
+
 ```powershell
 git add .
 git commit -m "feat: Add your feature description"
 ```
 
 5. **Push to GitHub**
+
 ```powershell
 git push origin feature/your-feature-name
 ```
@@ -282,6 +294,7 @@ git push origin feature/your-feature-name
 ### Common Development Tasks
 
 **Add a new API endpoint:**
+
 ```powershell
 # 1. Create route in server/src/routes/
 # 2. Add to server/src/index.ts
@@ -291,6 +304,7 @@ git push origin feature/your-feature-name
 ```
 
 **Add a new page:**
+
 ```powershell
 # 1. Create component in client/src/pages/
 # 2. Add route in client/src/App.tsx
@@ -299,6 +313,7 @@ git push origin feature/your-feature-name
 ```
 
 **Add a new database model:**
+
 ```powershell
 # 1. Create model in server/src/models/
 # 2. Define schema with Mongoose
@@ -346,6 +361,7 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/customers" -Headers @{Authoriz
 ### Frontend Testing
 
 **Manual Testing Checklist:**
+
 - [ ] Login page loads
 - [ ] Dashboard loads with charts
 - [ ] Create customer works
@@ -372,8 +388,8 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/customers" -Headers @{Authoriz
 ### Data Flow
 
 ```
-User Action → Frontend Component → Service Function → API Call → 
-Backend Route → Middleware (auth, validation) → Controller Logic → 
+User Action → Frontend Component → Service Function → API Call →
+Backend Route → Middleware (auth, validation) → Controller Logic →
 Database (MongoDB) → Response → Frontend → UI Update
 ```
 
@@ -483,6 +499,7 @@ db.customers.find().pretty()      # View customers
 ### Documentation
 
 - **Project Docs**:
+
   - [README.md](./README.md) - Project overview
   - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Fix common issues
   - [COMMANDS_REFERENCE.md](./COMMANDS_REFERENCE.md) - Complete commands
@@ -500,25 +517,27 @@ db.customers.find().pretty()      # View customers
 ### Code Examples
 
 **Create a new customer:**
+
 ```typescript
 // Frontend: client/src/services/customerService.ts
 export const createCustomer = async (data: CustomerFormData) => {
-  const response = await api.post('/customers', data);
+  const response = await api.post("/customers", data);
   return response.data;
 };
 
 // Backend: server/src/routes/customers.ts
-router.post('/', authenticate, validateCustomer, async (req, res) => {
+router.post("/", authenticate, validateCustomer, async (req, res) => {
   const customer = await Customer.create(req.body);
   res.status(201).json(customer);
 });
 ```
 
 **Fetch data with React Query:**
+
 ```typescript
 // Component: client/src/pages/Customers.tsx
 const { data: customers, isLoading } = useQuery({
-  queryKey: ['customers'],
+  queryKey: ["customers"],
   queryFn: customerService.getCustomers,
 });
 ```
@@ -544,26 +563,29 @@ const { data: customers, isLoading } = useQuery({
 **Goal**: Add a simple "hello world" endpoint
 
 1. **Create route file**: `server/src/routes/hello.ts`
+
 ```typescript
-import { Router } from 'express';
+import { Router } from "express";
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  res.json({ message: 'Hello from new developer!' });
+router.get("/", (req, res) => {
+  res.json({ message: "Hello from new developer!" });
 });
 
 export default router;
 ```
 
 2. **Register route**: Edit `server/src/index.ts`
+
 ```typescript
-import helloRoutes from './routes/hello';
+import helloRoutes from "./routes/hello";
 // ...
-app.use('/api/hello', helloRoutes);
+app.use("/api/hello", helloRoutes);
 ```
 
 3. **Test endpoint**:
+
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:3000/api/hello"
 # Should output: @{message=Hello from new developer!}
@@ -607,6 +629,7 @@ Invoke-RestMethod -Uri "http://localhost:3000/api/hello"
 ### Pull Request Guidelines
 
 **PR Title Format:**
+
 ```
 type: Brief description
 
@@ -617,25 +640,31 @@ docs: Update installation guide
 ```
 
 **PR Description Template:**
+
 ```markdown
 ## What does this PR do?
+
 Brief description of changes
 
 ## Type of change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
 - [ ] Refactoring
 
 ## How to test
+
 1. Step 1
 2. Step 2
 3. Expected result
 
 ## Screenshots (if applicable)
+
 [Add screenshots]
 
 ## Checklist
+
 - [ ] Code tested locally
 - [ ] Tests pass (npm test)
 - [ ] Documentation updated
@@ -645,6 +674,7 @@ Brief description of changes
 ### Code Review Checklist
 
 **As Reviewer:**
+
 - [ ] Code follows project style
 - [ ] Changes are well-documented
 - [ ] Tests are included/pass
@@ -653,6 +683,7 @@ Brief description of changes
 - [ ] UI/UX is polished
 
 **As Author:**
+
 - [ ] Self-review before requesting review
 - [ ] All tests pass
 - [ ] No merge conflicts
@@ -716,6 +747,7 @@ npm install
 ### How to Ask for Help
 
 **Good Question:**
+
 ```
 I'm trying to create a new customer via the API, but I'm getting a 400 error.
 
@@ -737,6 +769,7 @@ Any ideas what I'm missing?
 ```
 
 **Include:**
+
 - What you're trying to do
 - What's happening instead
 - Error messages (exact text)
@@ -760,7 +793,8 @@ You're now ready to start contributing! Here's your first day checklist:
 - [ ] Review current sprint tasks
 - [ ] Pick your first issue to work on
 
-**Remember**: 
+**Remember**:
+
 - 🙋 Ask questions - we're here to help!
 - 🔍 Explore the codebase - best way to learn
 - 🧪 Test your changes thoroughly
